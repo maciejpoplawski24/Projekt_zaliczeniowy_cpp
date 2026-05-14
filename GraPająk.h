@@ -4,7 +4,7 @@
 #include <SFML/Graphics.hpp>
 
 struct Karta { 
-    int wartosc;
+    int wartosc; 
     bool odkryta = false;
     std::string tekst() const;
 };
