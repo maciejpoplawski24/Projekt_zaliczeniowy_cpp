@@ -8,7 +8,7 @@ std::string Karta::tekst() const {
     return nazwy[wartosc];
 }
 
-GraPajak::GraPajak() {
+GraPajak::GraPajak() { 
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
         for (int w = 1; w <= 13; ++w) talia.push_back({w, false});
     }
