@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "GraPajak.h"
 
+
 // Maciej implementuje metodę rysuj zdefiniowaną w GraPajak.h
 void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font) {
     float szer = 70.f; float wys = 100.f;
