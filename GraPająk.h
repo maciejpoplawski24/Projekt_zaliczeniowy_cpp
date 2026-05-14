@@ -3,7 +3,7 @@
 #include <string>
 #include <SFML/Graphics.hpp>
 
-struct Karta {
+struct Karta { 
     int wartosc;
     bool odkryta = false;
     std::string tekst() const;
