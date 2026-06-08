@@ -120,7 +120,7 @@ bool GraPajak::czy_sa_ruchy() {
 }
 
 void GraPajak::sprawdz_stan_gry() {
-    if (zebrane_krolestwa == 😎 stan = WYGRANA;
+    if (zebrane_krolestwa == 8) stan = WYGRANA;
     else if (!czy_sa_ruchy()) stan = PRZEGRANA;
     else stan = W_TRAKCIE;
 }
@@ -186,10 +186,6 @@ void GraPajak::aktualizujMysz(sf::Vector2f pos) { mousePos = pos; }
 
 
 
-// --- RYSOWANIE (Metoda zadeklarowana przez Piotrka, ale napisze ją Maciej w mainie) ---
-void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font) {
-    // Implementacja znajduje się w main.cpp (lub zostanie dopisana przez grafika)
-}
 
 void GraPajak::zaladujTekstury() {
     if(texTlo.loadFromFile("assets/tlo1.jpg")) {
@@ -200,8 +196,17 @@ void GraPajak::zaladujTekstury() {
         spriteTlo.setScale(scaleX, scaleY);
     }
 
+
+
+    // Ładowanie tła...
+
+    // 1. Rewers pikselowy (dla stylu 1)
     texRewers.loadFromFile("assets/card_back.png");
 
+    // 2. Rewers gładki niebieski (dla stylu 2)
+    texRewers2.loadFromFile("assets/cardBack_blue2.png");
+
+    // Ładowanie awersów...
     texAwers[1].loadFromFile("assets/card_clubs_A.png");
     texAwers[2].loadFromFile("assets/card_clubs_02.png");
     texAwers[3].loadFromFile("assets/card_clubs_03.png");
@@ -215,4 +220,21 @@ void GraPajak::zaladujTekstury() {
     texAwers[11].loadFromFile("assets/card_clubs_J.png");
     texAwers[12].loadFromFile("assets/card_clubs_Q.png");
     texAwers[13].loadFromFile("assets/card_clubs_K.png");
+
+
+
+    // Ładowanie drugiego stylu (Karo / Diamonds)
+    texAwers2[1].loadFromFile("assets/cardDiamondsA.png");
+    texAwers2[2].loadFromFile("assets/cardDiamonds2.png");
+    texAwers2[3].loadFromFile("assets/cardDiamonds3.png");
+    texAwers2[4].loadFromFile("assets/cardDiamonds4.png");
+    texAwers2[5].loadFromFile("assets/cardDiamonds5.png");
+    texAwers2[6].loadFromFile("assets/cardDiamonds6.png");
+    texAwers2[7].loadFromFile("assets/cardDiamonds7.png");
+    texAwers2[8].loadFromFile("assets/cardDiamonds8.png");
+    texAwers2[9].loadFromFile("assets/cardDiamonds9.png");
+    texAwers2[10].loadFromFile("assets/cardDiamonds10.png");
+    texAwers2[11].loadFromFile("assets/cardDiamondsJ.png");
+    texAwers2[12].loadFromFile("assets/cardDiamondsQ.png");
+    texAwers2[13].loadFromFile("assets/cardDiamondsK.png");
 }

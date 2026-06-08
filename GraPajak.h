@@ -38,7 +38,9 @@ class GraPajak {
 // --- ZMIENNE DO GRAFIKI ---
     sf::Texture texTlo;
     sf::Texture texRewers;
-    sf::Texture texAwers[14]; 
+    sf::Texture texRewers2;
+    sf::Texture texAwers[14];
+    sf::Texture texAwers2[14];
     sf::Sprite spriteTlo;
 
     
@@ -60,5 +62,5 @@ public:
     void obsluzKlikniecie(sf::Vector2f klik);
     void obsluzPuszczenie();
     void aktualizujMysz(sf::Vector2f pos);
-    void rysuj(sf::RenderWindow& window, sf::Font& font);
+    void rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl);
 };
