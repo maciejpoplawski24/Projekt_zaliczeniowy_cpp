@@ -9,6 +9,7 @@ std::string Karta::tekst() const {
 }
 
 GraPajak::GraPajak() { 
+    zaladujTekstury(); // <--- DODANE
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
         for (int w = 1; w <= 13; ++w) talia.push_back({w, false});
     }
@@ -183,7 +184,35 @@ void GraPajak::obsluzPuszczenie() {
 
 void GraPajak::aktualizujMysz(sf::Vector2f pos) { mousePos = pos; }
 
+
+
 // --- RYSOWANIE (Metoda zadeklarowana przez Piotrka, ale napisze ją Maciej w mainie) ---
 void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font) {
     // Implementacja znajduje się w main.cpp (lub zostanie dopisana przez grafika)
+}
+
+void GraPajak::zaladujTekstury() {
+    if(texTlo.loadFromFile("assets/tlo1.jpg")) {
+        spriteTlo.setTexture(texTlo);
+        // Opcjonalne skalowanie tła pod okno 1000x800
+        float scaleX = 1000.f / spriteTlo.getLocalBounds().width;
+        float scaleY = 800.f / spriteTlo.getLocalBounds().height;
+        spriteTlo.setScale(scaleX, scaleY);
+    }
+
+    texRewers.loadFromFile("assets/card_back.png");
+
+    texAwers[1].loadFromFile("assets/card_clubs_A.png");
+    texAwers[2].loadFromFile("assets/card_clubs_02.png");
+    texAwers[3].loadFromFile("assets/card_clubs_03.png");
+    texAwers[4].loadFromFile("assets/card_clubs_04.png");
+    texAwers[5].loadFromFile("assets/card_clubs_05.png");
+    texAwers[6].loadFromFile("assets/card_clubs_06.png");
+    texAwers[7].loadFromFile("assets/card_clubs_07.png");
+    texAwers[8].loadFromFile("assets/card_clubs_08.png");
+    texAwers[9].loadFromFile("assets/card_clubs_09.png");
+    texAwers[10].loadFromFile("assets/card_clubs_10.png");
+    texAwers[11].loadFromFile("assets/card_clubs_J.png");
+    texAwers[12].loadFromFile("assets/card_clubs_Q.png");
+    texAwers[13].loadFromFile("assets/card_clubs_K.png");
 }
