@@ -8,6 +8,7 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font) {
     float szer = 70.f; float wys = 100.f;
     float offX = 90.f; float offY = 20.f;
     float startY = 200.f;
+    window.draw(spriteTlo);
 
     int minuty = (int)czas_gry / 60;
     int sekundy = (int)czas_gry % 60;
@@ -69,37 +70,43 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font) {
             emptyCol.setFillColor(sf::Color(30, 100, 30));
             window.draw(emptyCol);
         }
+       // PODMIENIONA PĘTLA RYSOWANIA KART W STOSACH
         for (size_t j = 0; j < stosy[i].size(); ++j) {
             if (isDragging && i == dragCol && j >= (size_t)dragRow) continue;
-            sf::RectangleShape rect(sf::Vector2f(szer, wys));
-            rect.setPosition(50.f + i * offX, startY + j * offY);
-            rect.setOutlineThickness(1.f);
-            rect.setOutlineColor(sf::Color::Black);
-            rect.setFillColor(stosy[i][j].odkryta ? sf::Color::White : sf::Color(100, 149, 237));
-            window.draw(rect);
+            
+            sf::Sprite kartaSprite;
             if (stosy[i][j].odkryta) {
-                sf::Text val(stosy[i][j].tekst(), font, 20);
-                val.setPosition(55.f + i * offX, startY + j * offY + 5.f);
-                val.setFillColor(sf::Color::Black);
-                window.draw(val);
+                kartaSprite.setTexture(texAwers[stosy[i][j].wartosc]);
+            } else {
+                kartaSprite.setTexture(texRewers);
             }
+
+            kartaSprite.setPosition(50.f + i * offX, startY + j * offY);
+            
+            // Skalowanie grafiki do zakładanych 70x100
+            float scaleX = szer / kartaSprite.getLocalBounds().width;
+            float scaleY = wys / kartaSprite.getLocalBounds().height;
+            kartaSprite.setScale(scaleX, scaleY);
+            
+            window.draw(kartaSprite);
         }
     }
 
+   // PODMIENIONY BLOK PODNOSZENIA KART
     if (isDragging) {
         for (size_t k = (size_t)dragRow; k < stosy[dragCol].size(); ++k) {
             float x = mousePos.x - dragOffset.x;
             float y = mousePos.y - dragOffset.y + ((k - dragRow) * offY);
-            sf::RectangleShape dRect(sf::Vector2f(szer, wys));
-            dRect.setPosition(x, y);
-            dRect.setFillColor(sf::Color::White);
-            dRect.setOutlineThickness(2.f);
-            dRect.setOutlineColor(sf::Color::Blue);
-            window.draw(dRect);
-            sf::Text dVal(stosy[dragCol][k].tekst(), font, 20);
-            dVal.setPosition(x + 5.f, y + 5.f);
-            dVal.setFillColor(sf::Color::Black);
-            window.draw(dVal);
+            
+            sf::Sprite dSprite;
+            dSprite.setTexture(texAwers[stosy[dragCol][k].wartosc]);
+            dSprite.setPosition(x, y);
+            
+            float scaleX = szer / dSprite.getLocalBounds().width;
+            float scaleY = wys / dSprite.getLocalBounds().height;
+            dSprite.setScale(scaleX, scaleY);
+            
+            window.draw(dSprite);
         }
     }
 
