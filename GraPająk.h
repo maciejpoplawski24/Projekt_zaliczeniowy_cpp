@@ -35,9 +35,18 @@ class GraPajak {
     int dragRow = -1;
     sf::Vector2f dragOffset;
     sf::Vector2f mousePos;
+// --- ZMIENNE DO GRAFIKI ---
+    sf::Texture texTlo;
+    sf::Texture texRewers;
+    sf::Texture texAwers[14]; 
+    sf::Sprite spriteTlo;
+
+    
 
 public:
+    
     GraPajak();
+    void zaladujTekstury();
     void tasuj();
     void rozdaj_poczatkowe();
     void aktualizujCzas();
