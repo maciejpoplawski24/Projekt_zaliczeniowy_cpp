@@ -1,6 +1,8 @@
 #include "GraPajak.h"
 #include <algorithm>
 #include <random>
+#include <fstream>
+
 
 std::string Karta::tekst() const {
     if (!odkryta) return "";
@@ -8,7 +10,7 @@ std::string Karta::tekst() const {
     return nazwy[wartosc];
 }
 
-GraPajak::GraPajak() { 
+GraPajak::GraPajak() {
     zaladujTekstury(); // <--- DODANE
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
         for (int w = 1; w <= 13; ++w) talia.push_back({w, false});
@@ -40,7 +42,7 @@ void GraPajak::rozdaj_poczatkowe() {
 
 void GraPajak::aktualizujCzas() {
     if (stan == W_TRAKCIE) czas_gry += zegar.restart().asSeconds();
-    else zegar.restart(); 
+    else zegar.restart();
 }
 
 int GraPajak::obliczWynik() {
@@ -67,7 +69,7 @@ void GraPajak::cofnij_ruch() {
     czas_gry = s.czas_gry;
     isDragging = false;
     stan = W_TRAKCIE;
-    zegar.restart(); 
+    zegar.restart();
     sprawdz_stan_gry();
 }
 
@@ -120,7 +122,13 @@ bool GraPajak::czy_sa_ruchy() {
 }
 
 void GraPajak::sprawdz_stan_gry() {
-    if (zebrane_krolestwa == 8) stan = WYGRANA;
+    if (zebrane_krolestwa == 8) {
+        stan = WYGRANA;
+        if (!wynikZapisany) {
+            zapiszWynikRanking(obliczWynik());
+            wynikZapisany = true;
+        }
+    }
     else if (!czy_sa_ruchy()) stan = PRZEGRANA;
     else stan = W_TRAKCIE;
 }
@@ -188,25 +196,15 @@ void GraPajak::aktualizujMysz(sf::Vector2f pos) { mousePos = pos; }
 
 
 void GraPajak::zaladujTekstury() {
-    if(texTlo.loadFromFile("assets/tlo1.jpg")) {
-        spriteTlo.setTexture(texTlo);
-        // Opcjonalne skalowanie tła pod okno 1000x800
-        float scaleX = 1000.f / spriteTlo.getLocalBounds().width;
-        float scaleY = 800.f / spriteTlo.getLocalBounds().height;
-        spriteTlo.setScale(scaleX, scaleY);
-    }
+    // Ładowanie trzech niezależnych plików stołu
+    texTlo1.loadFromFile("assets/tlo1.jpg"); // wood_basecolor
+    texTlo2.loadFromFile("assets/tlo2.jpg"); // stretch_poplin / zielone sukno
+    texTlo3.loadFromFile("assets/tlo3.jpg"); // jacquard_fabric / ciemny wzór
 
-
-
-    // Ładowanie tła...
-
-    // 1. Rewers pikselowy (dla stylu 1)
     texRewers.loadFromFile("assets/card_back.png");
-
-    // 2. Rewers gładki niebieski (dla stylu 2)
     texRewers2.loadFromFile("assets/cardBack_blue2.png");
 
-    // Ładowanie awersów...
+    // Ładowanie pierwszej talii (Pikselowe Trefle)
     texAwers[1].loadFromFile("assets/card_clubs_A.png");
     texAwers[2].loadFromFile("assets/card_clubs_02.png");
     texAwers[3].loadFromFile("assets/card_clubs_03.png");
@@ -221,9 +219,7 @@ void GraPajak::zaladujTekstury() {
     texAwers[12].loadFromFile("assets/card_clubs_Q.png");
     texAwers[13].loadFromFile("assets/card_clubs_K.png");
 
-
-
-    // Ładowanie drugiego stylu (Karo / Diamonds)
+    // Ładowanie drugiej talii (Wektorowe Karo)
     texAwers2[1].loadFromFile("assets/cardDiamondsA.png");
     texAwers2[2].loadFromFile("assets/cardDiamonds2.png");
     texAwers2[3].loadFromFile("assets/cardDiamonds3.png");
@@ -237,4 +233,65 @@ void GraPajak::zaladujTekstury() {
     texAwers2[11].loadFromFile("assets/cardDiamondsJ.png");
     texAwers2[12].loadFromFile("assets/cardDiamondsQ.png");
     texAwers2[13].loadFromFile("assets/cardDiamondsK.png");
+}
+
+// --- PEŁNY RESET STOŁU I POWRÓT DO STANU WYJŚCIOWEGO ---
+void GraPajak::resetuj() {
+    talia.clear();
+    for (int i = 0; i < 10; ++i) stosy[i].clear();
+    historia.clear();
+    zebrane_krolestwa = 0;
+    stan = W_TRAKCIE;
+    czas_gry = 0.f;
+    isDragging = false;
+
+    // Wygenerowanie nowej, świeżej konfiguracji kart
+    for (int zestaw = 0; zestaw < 8; ++zestaw) {
+        for (int w = 1; w <= 13; ++w) talia.push_back({w, false});
+    }
+    tasuj();
+    rozdaj_poczatkowe();
+    zegar.restart();
+}
+// --- OBSŁUGA PLIKÓW I RANKINGU ---
+
+std::vector<std::string> GraPajak::wczytajProfile() {
+    std::vector<std::string> profile;
+    std::ifstream plik("profile.txt");
+    std::string nick;
+    while (plik >> nick) { profile.push_back(nick); }
+    return profile;
+}
+
+void GraPajak::dodajProfil(const std::string& nick) {
+    auto profile = wczytajProfile();
+    // Sprawdzamy czy gracza już nie ma na liście
+    if (std::find(profile.begin(), profile.end(), nick) == profile.end()) {
+        if (profile.size() < 20) { // Limit 20 graczy na komputer
+            std::ofstream plik("profile.txt", std::ios::app);
+            plik << nick << "\n";
+        }
+    }
+}
+
+void GraPajak::zapiszWynikRanking(int punkty) {
+    std::string nazwaPliku = "ranking_" + std::to_string(aktualnyTryb) + ".txt";
+    std::ofstream plik(nazwaPliku, std::ios::app);
+    plik << aktualnyGracz << " " << punkty << "\n";
+}
+
+std::vector<WynikGracza> GraPajak::pobierzRanking(int tryb) {
+    std::string nazwaPliku = "ranking_" + std::to_string(tryb) + ".txt";
+    std::ifstream plik(nazwaPliku);
+    std::vector<WynikGracza> tabela;
+    std::string n; int p;
+
+    while (plik >> n >> p) tabela.push_back({n, p});
+
+    // Sortowanie wyników malejąco
+    std::sort(tabela.begin(), tabela.end(), [](const WynikGracza& a, const WynikGracza& b) {
+        return a.punkty > b.punkty;
+    });
+
+    return tabela;
 }

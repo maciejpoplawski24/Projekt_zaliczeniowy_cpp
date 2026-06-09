@@ -1,10 +1,17 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <fstream>
 #include <SFML/Graphics.hpp>
 
-struct Karta { 
-    int wartosc; 
+// Nowa struktura do obsługi rankingu
+struct WynikGracza {
+    std::string nick;
+    int punkty;
+};
+
+struct Karta {
+    int wartosc;
     bool odkryta = false;
     std::string tekst() const;
 };
@@ -13,7 +20,7 @@ struct StanGry {
     std::vector<Karta> talia;
     std::vector<Karta> stosy[10];
     int zebrane_krolestwa;
-    float czas_gry; 
+    float czas_gry;
 };
 
 enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA };
@@ -22,11 +29,10 @@ class GraPajak {
     std::vector<Karta> talia;
     std::vector<Karta> stosy[10];
     int zebrane_krolestwa = 0;
-    StanRozgrywki stan = W_TRAKCIE;
 
     sf::Clock zegar;
-    float czas_gry = 0.f;
-    const int BAZA_PUNKTOW = 100000; 
+
+    const int BAZA_PUNKTOW = 100000;
 
     std::vector<StanGry> historia;
 
@@ -35,20 +41,27 @@ class GraPajak {
     int dragRow = -1;
     sf::Vector2f dragOffset;
     sf::Vector2f mousePos;
-// --- ZMIENNE DO GRAFIKI ---
-    sf::Texture texTlo;
+
+public:
+    float czas_gry = 0.f;
+    StanRozgrywki stan = W_TRAKCIE;
+
+    // --- ZMIENNE GRACZA I RANKINGU ---
+    std::string aktualnyGracz = "Nieznajomy";
+    int aktualnyTryb = 1; // 1, 2 lub 4 kolory
+    bool wynikZapisany = false;
+
+    // --- TEKSTURY ---
+    sf::Texture texTlo1;
+    sf::Texture texTlo2;
+    sf::Texture texTlo3;
     sf::Texture texRewers;
     sf::Texture texRewers2;
     sf::Texture texAwers[14];
     sf::Texture texAwers2[14];
     sf::Sprite spriteTlo;
 
-    
-
-public:
-    
     GraPajak();
-    void zaladujTekstury();
     void tasuj();
     void rozdaj_poczatkowe();
     void aktualizujCzas();
@@ -62,5 +75,14 @@ public:
     void obsluzKlikniecie(sf::Vector2f klik);
     void obsluzPuszczenie();
     void aktualizujMysz(sf::Vector2f pos);
-    void rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl);
+    void rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, int wybraneTlo);
+    void resetuj();
+    bool czyKoniecGry() const { return stan != W_TRAKCIE; }
+    void zaladujTekstury();
+
+    // --- METODY PLIKOWE ---
+    std::vector<std::string> wczytajProfile();
+    void dodajProfil(const std::string& nick);
+    void zapiszWynikRanking(int punkty);
+    std::vector<WynikGracza> pobierzRanking(int tryb);
 };
