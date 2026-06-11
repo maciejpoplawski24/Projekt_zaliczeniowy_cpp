@@ -4,7 +4,6 @@
 #include <fstream>
 #include <SFML/Graphics.hpp>
 
-// Nowa struktura do obsługi rankingu
 struct WynikGracza {
     std::string nick;
     int punkty;
@@ -12,7 +11,7 @@ struct WynikGracza {
 
 struct Karta { 
     int wartosc; 
-    int kolor; // Dodana zmienna (0=Trefl, 1=Karo, 2=Kier, 3=Pik)
+    int kolor; // 0=Trefl, 1=Karo, 2=Kier, 3=Pik
     bool odkryta = false;
     std::string tekst() const;
 };
@@ -21,7 +20,7 @@ struct StanGry {
     std::vector<Karta> talia;
     std::vector<Karta> stosy[10];
     int zebrane_krolestwa;
-    float czas_gry;
+    float czas_gry; 
 };
 
 enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA };
@@ -30,10 +29,9 @@ class GraPajak {
     std::vector<Karta> talia;
     std::vector<Karta> stosy[10];
     int zebrane_krolestwa = 0;
-
+    
     sf::Clock zegar;
-
-    const int BAZA_PUNKTOW = 100000;
+    const int BAZA_PUNKTOW = 100000; 
 
     std::vector<StanGry> historia;
 
@@ -49,17 +47,24 @@ public:
 
     // --- ZMIENNE GRACZA I RANKINGU ---
     std::string aktualnyGracz = "Nieznajomy";
-    int aktualnyTryb = 1; // 1, 2 lub 4 kolory
+    int aktualnyTryb = 1; 
     bool wynikZapisany = false;
 
+    // --- SYSTEM WSKAZÓWEK ---
+    bool pokazWskazowke = false;
+    int hintZ_Kol = -1;
+    int hintZ_Rzad = -1;
+    int hintDo_Kol = -1;
+
     // --- TEKSTURY ---
-    sf::Texture texTlo1;
-    sf::Texture texTlo2;
-    sf::Texture texTlo3;
+    sf::Texture texTlo1; 
+    sf::Texture texTlo2; 
+    sf::Texture texTlo3; 
     sf::Texture texRewers;
     sf::Texture texRewers2;
-    sf::Texture texAwers[14];
-    sf::Texture texAwers2[14];
+    // Tablice 2D dla 4 kolorów i 14 wartości
+    sf::Texture texAwers[4][14]; 
+    sf::Texture texAwers2[4][14];
     sf::Sprite spriteTlo;
 
     GraPajak();
@@ -80,6 +85,9 @@ public:
     void resetuj();
     bool czyKoniecGry() const { return stan != W_TRAKCIE; }
     void zaladujTekstury();
+    
+    void znajdzWskazowke();
+    void wyczyscWskazowke() { pokazWskazowke = false; }
 
     // --- METODY PLIKOWE ---
     std::vector<std::string> wczytajProfile();
