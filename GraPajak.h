@@ -10,8 +10,9 @@ struct WynikGracza {
     int punkty;
 };
 
-struct Karta {
-    int wartosc;
+struct Karta { 
+    int wartosc; 
+    int kolor; // Dodana zmienna (0=Trefl, 1=Karo, 2=Kier, 3=Pik)
     bool odkryta = false;
     std::string tekst() const;
 };
