@@ -147,32 +147,53 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
     }
 
     if (stan != W_TRAKCIE) {
-        sf::RectangleShape overlay(sf::Vector2f(1000.f, 800.f));
-        overlay.setFillColor(sf::Color(0, 0, 0, 200));
-        window.draw(overlay);
+        if (stan == WYGRANA && !ekranPodsumowania) {
+            aktualizujAnimacjeWygranej();
+            for (const auto& ka : animowaneKarty) {
+                window.draw(ka.sprite);
+            }
+            sf::Text txtPomin("Kliknij LPM, aby wyswietlic podsumowanie", font, 22);
+            txtPomin.setFillColor(sf::Color(255, 255, 255, 200));
+            sf::FloatRect pRect = txtPomin.getLocalBounds();
+            txtPomin.setOrigin(pRect.left + pRect.width/2.0f, pRect.top + pRect.height/2.0f);
+            txtPomin.setPosition(500.f, 750.f);
+            window.draw(txtPomin);
+        }
+        else {
+            sf::RectangleShape overlay(sf::Vector2f(1000.f, 800.f));
+            overlay.setFillColor(sf::Color(0, 0, 0, 200));
+            window.draw(overlay);
 
-        sf::Text msg(stan == WYGRANA ? "ZWYCIESTWO!" : "BRAK RUCHOW!", font, 70);
-        msg.setFillColor(stan == WYGRANA ? sf::Color::Yellow : sf::Color::Red);
-        sf::FloatRect textRect = msg.getLocalBounds();
-        msg.setOrigin(textRect.left + textRect.width/2.0f, textRect.top + textRect.height/2.0f);
-        msg.setPosition(500.f, 320.f);
-        window.draw(msg);
+            if (stan == WYGRANA) {
+                aktualizujAnimacjeWygranej();
+                for (const auto& ka : animowaneKarty) {
+                    window.draw(ka.sprite);
+                }
+            }
 
-        std::string statsStr = "Gracz: " + aktualnyGracz + " | Czas: " + std::to_string(minuty) + ":" + (sekundy < 10 ? "0" : "") + std::to_string(sekundy) +
-                              "\nWYNIK KONCOWY: " + std::to_string(obliczWynik());
-        sf::Text statsMsg(statsStr, font, 35);
-        statsMsg.setFillColor(sf::Color::White);
-        sf::FloatRect sRect = statsMsg.getLocalBounds();
-        statsMsg.setOrigin(sRect.left + sRect.width/2.0f, sRect.top + sRect.height/2.0f);
-        statsMsg.setPosition(500.f, 460.f);
-        window.draw(statsMsg);
+            sf::Text msg(stan == WYGRANA ? "ZWYCIESTWO!" : "BRAK RUCHOW!", font, 70);
+            msg.setFillColor(stan == WYGRANA ? sf::Color::Yellow : sf::Color::Red);
+            sf::FloatRect textRect = msg.getLocalBounds();
+            msg.setOrigin(textRect.left + textRect.width/2.0f, textRect.top + textRect.height/2.0f);
+            msg.setPosition(500.f, 320.f);
+            window.draw(msg);
 
-        sf::Text txtPowrot("Kliknij LPM, aby powrocic do Menu Glownego", font, 22);
-        txtPowrot.setFillColor(sf::Color(180, 180, 180));
-        sf::FloatRect pRect = txtPowrot.getLocalBounds();
-        txtPowrot.setOrigin(pRect.left + pRect.width/2.0f, pRect.top + pRect.height/2.0f);
-        txtPowrot.setPosition(500.f, 580.f);
-        window.draw(txtPowrot);
+            std::string statsStr = "Gracz: " + aktualnyGracz + " | Czas: " + std::to_string(minuty) + ":" + (sekundy < 10 ? "0" : "") + std::to_string(sekundy) +
+                                  "\nWYNIK KONCOWY: " + std::to_string(obliczWynik());
+            sf::Text statsMsg(statsStr, font, 35);
+            statsMsg.setFillColor(sf::Color::White);
+            sf::FloatRect sRect = statsMsg.getLocalBounds();
+            statsMsg.setOrigin(sRect.left + sRect.width/2.0f, sRect.top + sRect.height/2.0f);
+            statsMsg.setPosition(500.f, 460.f);
+            window.draw(statsMsg);
+
+            sf::Text txtPowrot("Kliknij LPM, aby powrocic do Menu Glownego", font, 22);
+            txtPowrot.setFillColor(sf::Color(180, 180, 180));
+            sf::FloatRect pRect2 = txtPowrot.getLocalBounds();
+            txtPowrot.setOrigin(pRect2.left + pRect2.width/2.0f, pRect2.top + pRect2.height/2.0f);
+            txtPowrot.setPosition(500.f, 580.f);
+            window.draw(txtPowrot);
+        }
     }
 }
 
@@ -263,18 +284,25 @@ int main() {
                         gra.stan = WYGRANA; 
                         gra.zapiszWynikRanking(gra.obliczWynik());
                         gra.wynikZapisany = true;
+                        if (gra.animowaneKarty.empty()) {
+                            gra.inicjujAnimacjeWygranej(wybranyStyl);
+                        }
                     }
                     else if (gra.czyKoniecGry()) { 
-                        gra.resetuj(); 
-                        obecnyStan = MENU_GLOWNE; 
+                        if (gra.stan == WYGRANA && !gra.ekranPodsumowania) {
+                            gra.ekranPodsumowania = true;
+                        } else {
+                            gra.resetuj(); 
+                            obecnyStan = MENU_GLOWNE; 
+                        }
                     }
                     else {
-                        gra.obsluzKlikniecie(myszPos);
+                        gra.obsluzKlikniecie(myszPos, wybranyStyl);
                     }
                 }
             }
 
-            if (event.type == sf::Event::MouseButtonReleased && obecnyStan == ROZGRYWKA) gra.obsluzPuszczenie();
+            if (event.type == sf::Event::MouseButtonReleased && obecnyStan == ROZGRYWKA) gra.obsluzPuszczenie(wybranyStyl);
             if (event.type == sf::Event::MouseMoved && obecnyStan == ROZGRYWKA) gra.aktualizujMysz(sf::Vector2f((float)event.mouseMove.x, (float)event.mouseMove.y));
         }
 

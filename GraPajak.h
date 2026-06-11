@@ -25,6 +25,12 @@ struct StanGry {
 
 enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA };
 
+struct KartaAnimacja {
+    sf::Sprite sprite;
+    sf::Vector2f pozycja;
+    sf::Vector2f predkosc;
+};
+
 class GraPajak {
     std::vector<Karta> talia;
     std::vector<Karta> stosy[10];
@@ -55,6 +61,8 @@ public:
     int hintZ_Kol = -1;
     int hintZ_Rzad = -1;
     int hintDo_Kol = -1;
+    
+    bool ekranPodsumowania = false;
 
     // --- TEKSTURY ---
     sf::Texture texTlo1; 
@@ -62,6 +70,7 @@ public:
     sf::Texture texTlo3; 
     sf::Texture texRewers;
     sf::Texture texRewers2;
+    int obecnyStyl = 1;
     // Tablice 2D dla 4 kolorów i 14 wartości
     sf::Texture texAwers[4][14]; 
     sf::Texture texAwers2[4][14];
@@ -78,13 +87,17 @@ public:
     void sprawdz_sekwencje();
     bool czy_sa_ruchy();
     void sprawdz_stan_gry();
-    void obsluzKlikniecie(sf::Vector2f klik);
-    void obsluzPuszczenie();
+    void obsluzKlikniecie(sf::Vector2f klik, int wybranyStyl);
+    void obsluzPuszczenie(int wybranyStyl);
     void aktualizujMysz(sf::Vector2f pos);
     void rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, int wybraneTlo);
     void resetuj();
     bool czyKoniecGry() const { return stan != W_TRAKCIE; }
     void zaladujTekstury();
+    
+    std::vector<KartaAnimacja> animowaneKarty;
+    void inicjujAnimacjeWygranej(int wybranyStyl);
+    void aktualizujAnimacjeWygranej();
     
     void znajdzWskazowke();
     void wyczyscWskazowke() { pokazWskazowke = false; }

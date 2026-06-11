@@ -137,12 +137,15 @@ void GraPajak::sprawdz_stan_gry() {
             zapiszWynikRanking(obliczWynik());
             wynikZapisany = true;
         }
+        if (animowaneKarty.empty()) {
+            inicjujAnimacjeWygranej(obecnyStyl);
+        }
     }
     else if (!czy_sa_ruchy()) stan = PRZEGRANA;
     else stan = W_TRAKCIE;
 }
 
-void GraPajak::obsluzKlikniecie(sf::Vector2f klik) {
+void GraPajak::obsluzKlikniecie(sf::Vector2f klik, int wybranyStyl) {
     wyczyscWskazowke();
     
     sf::FloatRect boundsCofnij(750.f, 50.f, 80.f, 40.f);
@@ -154,17 +157,28 @@ void GraPajak::obsluzKlikniecie(sf::Vector2f klik) {
         stan = WYGRANA;
         zapiszWynikRanking(obliczWynik());
         wynikZapisany = true;
+        if (animowaneKarty.empty()) {
+            inicjujAnimacjeWygranej(wybranyStyl);
+        }
         return;
     }
 
     if (stan != W_TRAKCIE) return;
-    sf::FloatRect boundsTalia(850.f, 50.f, 85.f, 120.f);
+
+    float szer = 70.f; float wys = 100.f;
+    float offX = 90.f; float offY = 20.f;
+    float drawSzer = (wybranyStyl == 1) ? 86.f : szer;
+    float drawWys  = (wybranyStyl == 1) ? 120.f : wys;
+    float shiftX   = (wybranyStyl == 1) ? -8.f : 0.f;
+    float shiftY   = (wybranyStyl == 1) ? -10.f : 0.f;
+
+    sf::FloatRect boundsTalia(850.f + shiftX, 50.f + shiftY, drawSzer, drawWys);
     if (boundsTalia.contains(klik)) { dobierz_z_talii(); return; }
 
     float startY = 200.f;
     for (int i = 0; i < 10 && !isDragging; ++i) {
         for (int j = (int)stosy[i].size() - 1; j >= 0; --j) {
-            sf::FloatRect bounds(50.f + i * 95.f, startY + j * 25.f, 85.f, 120.f);
+            sf::FloatRect bounds(50.f + i * offX + shiftX, startY + j * offY + shiftY, drawSzer, drawWys);
             if (bounds.contains(klik) && stosy[i][j].odkryta) {
                 bool moznaPodniesc = true;
                 for(size_t k = (size_t)j; k < stosy[i].size() - 1; ++k) {
@@ -185,12 +199,17 @@ void GraPajak::obsluzKlikniecie(sf::Vector2f klik) {
     }
 }
 
-void GraPajak::obsluzPuszczenie() {
+void GraPajak::obsluzPuszczenie(int wybranyStyl) {
     if (!isDragging) return;
+    
+    float offX = 90.f;
+    float drawSzer = (wybranyStyl == 1) ? 86.f : 70.f;
+    float shiftX   = (wybranyStyl == 1) ? -8.f : 0.f;
+
     int targetCol = -1;
     for (int i = 0; i < 10; ++i) {
-        float colX = 50.f + i * 95.f;
-        if (mousePos.x >= colX && mousePos.x <= colX + 85.f) { targetCol = i; break; }
+        float colX = 50.f + i * offX + shiftX;
+        if (mousePos.x >= colX && mousePos.x <= colX + drawSzer) { targetCol = i; break; }
     }
     if (targetCol != -1 && targetCol != dragCol) {
         if (stosy[targetCol].empty() || stosy[targetCol].back().wartosc == stosy[dragCol][dragRow].wartosc + 1) {
@@ -238,6 +257,8 @@ void GraPajak::resetuj() {
     isDragging = false;
     wynikZapisany = false;
     wyczyscWskazowke();
+    animowaneKarty.clear();
+    ekranPodsumowania = false;
 
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
         int obecnyKolor = 0; 
@@ -251,6 +272,65 @@ void GraPajak::resetuj() {
     tasuj();
     rozdaj_poczatkowe();
     zegar.restart();
+}
+
+void GraPajak::inicjujAnimacjeWygranej(int wybranyStyl) {
+    animowaneKarty.clear();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> disX(-10.f, 10.f);
+    std::uniform_real_distribution<float> disY(-15.f, -2.f);
+    
+    float szer = 70.f; float wys = 100.f;
+    float offX = 90.f; float offY = 20.f;
+    float startY = 200.f;
+    float drawSzer = (wybranyStyl == 1) ? 86.f : szer;
+    float drawWys  = (wybranyStyl == 1) ? 120.f : wys;
+    float shiftX   = (wybranyStyl == 1) ? -8.f : 0.f;
+    float shiftY   = (wybranyStyl == 1) ? -10.f : 0.f;
+
+    for (int i = 0; i < 10; ++i) {
+        for (size_t j = 0; j < stosy[i].size(); ++j) {
+            KartaAnimacja ka;
+            if (stosy[i][j].odkryta) {
+                if (wybranyStyl == 1) ka.sprite.setTexture(texAwers[stosy[i][j].kolor][stosy[i][j].wartosc]);
+                else ka.sprite.setTexture(texAwers2[stosy[i][j].kolor][stosy[i][j].wartosc]);
+            } else {
+                if (wybranyStyl == 1) ka.sprite.setTexture(texRewers);
+                else ka.sprite.setTexture(texRewers2);
+            }
+            ka.pozycja = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+            ka.sprite.setPosition(ka.pozycja);
+            ka.sprite.setScale(drawSzer / ka.sprite.getLocalBounds().width, drawWys / ka.sprite.getLocalBounds().height);
+            ka.predkosc = sf::Vector2f(disX(gen), disY(gen));
+            animowaneKarty.push_back(ka);
+        }
+        stosy[i].clear();
+    }
+}
+
+void GraPajak::aktualizujAnimacjeWygranej() {
+    float grawitacja = 0.4f;
+    for (auto& ka : animowaneKarty) {
+        ka.predkosc.y += grawitacja;
+        ka.pozycja += ka.predkosc;
+        
+        if (ka.pozycja.x < 0) {
+            ka.pozycja.x = 0;
+            ka.predkosc.x = -ka.predkosc.x * 0.8f;
+        } else if (ka.pozycja.x > 1000 - ka.sprite.getGlobalBounds().width) {
+            ka.pozycja.x = 1000 - ka.sprite.getGlobalBounds().width;
+            ka.predkosc.x = -ka.predkosc.x * 0.8f;
+        }
+        
+        if (ka.pozycja.y > 800 - ka.sprite.getGlobalBounds().height) {
+            ka.pozycja.y = 800 - ka.sprite.getGlobalBounds().height;
+            ka.predkosc.y = -ka.predkosc.y * 0.85f;
+            ka.predkosc.x *= 0.98f;
+        }
+        
+        ka.sprite.setPosition(ka.pozycja);
+    }
 }
 
 void GraPajak::znajdzWskazowke() {
