@@ -90,11 +90,20 @@ void GraPajak::dobierz_z_talii() {
 void GraPajak::sprawdz_sekwencje() {
     for (int i = 0; i < 10; ++i) {
         if (stosy[i].size() >= 13) {
+            int rozmiar = stosy[i].size();
+            int kolorSekwencji = stosy[i].back().kolor; // Pobieramy kolor Asa na wierzchu
             bool pelna = true;
-            int n = stosy[i].size();
+            
             for (int j = 0; j < 13; ++j) {
-                if (!stosy[i][n - 1 - j].odkryta || stosy[i][n - 1 - j].wartosc != j + 1) { pelna = false; break; }
+                // Sprawdzamy odkrycie, wartość i dodatkowo KOLOR
+                if (!stosy[i][rozmiar - 1 - j].odkryta || 
+                    stosy[i][rozmiar - 1 - j].wartosc != j + 1 ||
+                    stosy[i][rozmiar - 1 - j].kolor != kolorSekwencji) { 
+                    pelna = false; 
+                    break; 
+                }
             }
+            
             if (pelna) {
                 stosy[i].erase(stosy[i].end() - 13, stosy[i].end());
                 zebrane_krolestwa++;
@@ -148,17 +157,23 @@ void GraPajak::obsluzKlikniecie(sf::Vector2f klik) {
     }
 
     if (stan != W_TRAKCIE) return;
-    sf::FloatRect boundsTalia(850.f, 50.f, 70.f, 100.f);
+    sf::FloatRect boundsTalia(850.f, 50.f, 85.f, 120.f); // Poprawione na 85x120
     if (boundsTalia.contains(klik)) { dobierz_z_talii(); return; }
 
     float startY = 200.f;
     for (int i = 0; i < 10 && !isDragging; ++i) {
         for (int j = (int)stosy[i].size() - 1; j >= 0; --j) {
-            sf::FloatRect bounds(50.f + i * 90.f, startY + j * 20.f, 70.f, 100.f);
+            // Poprawione hitboxy dla skalowania z maina
+            sf::FloatRect bounds(50.f + i * 95.f, startY + j * 25.f, 85.f, 120.f);
             if (bounds.contains(klik) && stosy[i][j].odkryta) {
                 bool moznaPodniesc = true;
                 for(size_t k = (size_t)j; k < stosy[i].size() - 1; ++k) {
-                    if (stosy[i][k].wartosc != stosy[i][k+1].wartosc + 1) { moznaPodniesc = false; break; }
+                    // Warunek Pająka: Karta niżej to wartość+1 ORAZ ten sam kolor
+                    if (stosy[i][k].wartosc != stosy[i][k+1].wartosc + 1 || 
+                        stosy[i][k].kolor != stosy[i][k+1].kolor) { 
+                        moznaPodniesc = false; 
+                        break; 
+                    }
                 }
                 if (moznaPodniesc) {
                     isDragging = true;
@@ -175,10 +190,11 @@ void GraPajak::obsluzPuszczenie() {
     if (!isDragging) return;
     int targetCol = -1;
     for (int i = 0; i < 10; ++i) {
-        float colX = 50.f + i * 90.f;
-        if (mousePos.x >= colX && mousePos.x <= colX + 70.f) { targetCol = i; break; }
+        float colX = 50.f + i * 95.f; // Zaktualizowany margines
+        if (mousePos.x >= colX && mousePos.x <= colX + 85.f) { targetCol = i; break; }
     }
     if (targetCol != -1 && targetCol != dragCol) {
+        // W Pasjansie kładzenie kart zależy TYLKO od wartości, kolor nie ma znaczenia
         if (stosy[targetCol].empty() || stosy[targetCol].back().wartosc == stosy[dragCol][dragRow].wartosc + 1) {
             zapisz_stan();
             for (size_t k = (size_t)dragRow; k < stosy[dragCol].size(); ++k) stosy[targetCol].push_back(stosy[dragCol][k]);
@@ -244,10 +260,17 @@ void GraPajak::resetuj() {
     stan = W_TRAKCIE;
     czas_gry = 0.f;
     isDragging = false;
+    wynikZapisany = false;
 
-    // Wygenerowanie nowej, świeżej konfiguracji kart
+    // Wygenerowanie nowej, świeżej konfiguracji kart zależnie od trybu
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
-        for (int w = 1; w <= 13; ++w) talia.push_back({w, false});
+        int obecnyKolor = 0; // Domyślnie same trefle
+        if (aktualnyTryb == 2) obecnyKolor = zestaw % 2; 
+        else if (aktualnyTryb == 4) obecnyKolor = zestaw % 4; 
+        
+        for (int w = 1; w <= 13; ++w) {
+            talia.push_back({w, obecnyKolor, false});
+        }
     }
     tasuj();
     rozdaj_poczatkowe();
