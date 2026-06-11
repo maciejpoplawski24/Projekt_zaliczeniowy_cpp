@@ -2,34 +2,20 @@
 #include <SFML/Graphics.hpp>
 #include "GraPajak.h"
 
-// Pomocnicza funkcja zwracająca kolor dla stylu minimalistycznego
-sf::Color pobierzKolorKarty(int wartosc) {
-    switch (wartosc % 4) {
-    case 0: return sf::Color(220, 53, 69);
-    case 1: return sf::Color(40, 167, 69);
-    case 2: return sf::Color(111, 66, 193);
-    default: return sf::Color(0, 123, 255);
-    }
-}
-
-// Pomocnicza funkcja do sprawdzania kolizji myszy z przyciskami
 bool czyKliknieto(sf::FloatRect bounds, sf::Vector2f klik) {
     return bounds.contains(klik);
 }
 
-// Implementacja metody rysuj (Maciej) - Logika rozgrywki
 void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, int wybraneTlo) {
     float szer = 70.f; float wys = 100.f;
     float offX = 90.f; float offY = 20.f;
     float startY = 200.f;
 
-    // Korekta wizualna dla stylu pikselowego
     float drawSzer = (wybranyStyl == 1) ? 86.f : szer;
     float drawWys  = (wybranyStyl == 1) ? 120.f : wys;
     float shiftX   = (wybranyStyl == 1) ? -8.f : 0.f;
     float shiftY   = (wybranyStyl == 1) ? -10.f : 0.f;
 
-    // Wybór tekstury stołu
     if (wybraneTlo == 1) spriteTlo.setTexture(texTlo1);
     else if (wybraneTlo == 2) spriteTlo.setTexture(texTlo2);
     else spriteTlo.setTexture(texTlo3);
@@ -39,10 +25,9 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
     spriteTlo.setScale(scaleX, scaleY);
     window.draw(spriteTlo);
 
-    // HUD
     int minuty = (int)czas_gry / 60;
     int sekundy = (int)czas_gry % 60;
-    std::string infoStr = "Gracz: " + aktualnyGracz + " | Tryb: " + std::to_string(aktualnyTryb) + " Kolor(y)" +
+    std::string infoStr = "Gracz: " + aktualnyGracz + " | Tryb: " + std::to_string(aktualnyTryb) + " Kolor(y)" + 
                           " | Czas: " + std::to_string(minuty) + ":" + (sekundy < 10 ? "0" : "") + std::to_string(sekundy) +
                           " | Wynik: " + std::to_string(obliczWynik());
     sf::Text txtInfo(infoStr, font, 24);
@@ -50,7 +35,6 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
     txtInfo.setFillColor(sf::Color::White);
     window.draw(txtInfo);
 
-    // TALIA POMOCNICZA
     if (!talia.empty()) {
         sf::Sprite stockSprite;
         if (wybranyStyl == 1) stockSprite.setTexture(texRewers);
@@ -76,10 +60,21 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
     txtCofnij.setPosition(760.f, 60.f);
     window.draw(txtCofnij);
 
-    // PRZYCISK DEV WYGRAJ (Przywrócony)
+    // Przycisk PODPOWIEDŹ
+    sf::RectangleShape btnHint(sf::Vector2f(100.f, 30.f));
+    btnHint.setPosition(740.f, 100.f);
+    btnHint.setFillColor(sf::Color(0, 100, 200)); 
+    btnHint.setOutlineThickness(2.f); 
+    btnHint.setOutlineColor(sf::Color::Black);
+    window.draw(btnHint);
+    sf::Text txtHint("PODPOWIEDZ", font, 12);
+    txtHint.setPosition(748.f, 108.f); 
+    txtHint.setFillColor(sf::Color::White);
+    window.draw(txtHint);
+
     sf::RectangleShape devRect(sf::Vector2f(120.f, 40.f));
     devRect.setPosition(850.f, 700.f);
-    devRect.setFillColor(sf::Color(128, 0, 128));
+    devRect.setFillColor(sf::Color(128, 0, 128)); 
     devRect.setOutlineThickness(2.f);
     devRect.setOutlineColor(sf::Color::Black);
     window.draw(devRect);
@@ -88,7 +83,6 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
     txtDev.setFillColor(sf::Color::White);
     window.draw(txtDev);
 
-    // Obszar ukończonych sekwencji
     for (int i = 0; i < zebrane_krolestwa; ++i) {
         sf::RectangleShape found(sf::Vector2f(szer, wys));
         found.setPosition(50.f + i * 25.f, 50.f);
@@ -98,7 +92,6 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
         window.draw(found);
     }
 
-    // Kolumny robocze
     for (int i = 0; i < 10; ++i) {
         if (stosy[i].empty()) {
             sf::RectangleShape emptyCol(sf::Vector2f(szer, wys));
@@ -110,9 +103,11 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
             if (isDragging && i == dragCol && j >= (size_t)dragRow) continue;
             sf::Sprite kartaSprite;
             if (stosy[i][j].odkryta) {
-                kartaSprite.setTexture((wybranyStyl == 1) ? texAwers[stosy[i][j].wartosc] : texAwers2[stosy[i][j].wartosc]);
-            } else {
-                kartaSprite.setTexture((wybranyStyl == 1) ? texRewers : texRewers2);
+                if (wybranyStyl == 1) kartaSprite.setTexture(texAwers[stosy[i][j].kolor][stosy[i][j].wartosc]);
+                else kartaSprite.setTexture(texAwers2[stosy[i][j].kolor][stosy[i][j].wartosc]);
+            } else { 
+                if (wybranyStyl == 1) kartaSprite.setTexture(texRewers);
+                else kartaSprite.setTexture(texRewers2);
             }
             kartaSprite.setPosition(50.f + i * offX + shiftX, startY + j * offY + shiftY);
             kartaSprite.setScale(drawSzer / kartaSprite.getLocalBounds().width, drawWys / kartaSprite.getLocalBounds().height);
@@ -120,20 +115,37 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
         }
     }
 
-    // Drag & Drop
     if (isDragging) {
         for (size_t k = (size_t)dragRow; k < stosy[dragCol].size(); ++k) {
             float x = mousePos.x - dragOffset.x;
             float y = mousePos.y - dragOffset.y + ((k - dragRow) * offY);
             sf::Sprite dSprite;
-            dSprite.setTexture((wybranyStyl == 1) ? texAwers[stosy[dragCol][k].wartosc] : texAwers2[stosy[dragCol][k].wartosc]);
+            if (wybranyStyl == 1) dSprite.setTexture(texAwers[stosy[dragCol][k].kolor][stosy[dragCol][k].wartosc]);
+            else dSprite.setTexture(texAwers2[stosy[dragCol][k].kolor][stosy[dragCol][k].wartosc]);
             dSprite.setPosition(x + shiftX, y + shiftY);
             dSprite.setScale(drawSzer / dSprite.getLocalBounds().width, drawWys / dSprite.getLocalBounds().height);
             window.draw(dSprite);
         }
     }
 
-    // EKRAN KOŃCOWY
+    if (pokazWskazowke) {
+        sf::RectangleShape rZ(sf::Vector2f(drawSzer, drawWys));
+        rZ.setPosition(50.f + hintZ_Kol * offX + shiftX, startY + hintZ_Rzad * offY + shiftY);
+        rZ.setFillColor(sf::Color::Transparent);
+        rZ.setOutlineThickness(5.f);
+        rZ.setOutlineColor(sf::Color::Yellow);
+        window.draw(rZ);
+
+        sf::RectangleShape rD(sf::Vector2f(drawSzer, drawWys));
+        float celY = startY;
+        if (!stosy[hintDo_Kol].empty()) celY = startY + (stosy[hintDo_Kol].size() - 1) * offY;
+        rD.setPosition(50.f + hintDo_Kol * offX + shiftX, celY + shiftY);
+        rD.setFillColor(sf::Color::Transparent);
+        rD.setOutlineThickness(5.f);
+        rD.setOutlineColor(sf::Color::Green);
+        window.draw(rD);
+    }
+
     if (stan != W_TRAKCIE) {
         sf::RectangleShape overlay(sf::Vector2f(1000.f, 800.f));
         overlay.setFillColor(sf::Color(0, 0, 0, 200));
@@ -147,7 +159,7 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
         window.draw(msg);
 
         std::string statsStr = "Gracz: " + aktualnyGracz + " | Czas: " + std::to_string(minuty) + ":" + (sekundy < 10 ? "0" : "") + std::to_string(sekundy) +
-                               "\nWYNIK KONCOWY: " + std::to_string(obliczWynik());
+                              "\nWYNIK KONCOWY: " + std::to_string(obliczWynik());
         sf::Text statsMsg(statsStr, font, 35);
         statsMsg.setFillColor(sf::Color::White);
         sf::FloatRect sRect = statsMsg.getLocalBounds();
@@ -172,19 +184,18 @@ int main() {
         std::cerr << "Nie udalo sie zaladowac czcionki arial.ttf\n";
         return -1;
     }
-
+    
     GraPajak gra;
     enum StanAplikacji { MENU_GLOWNE, MENU_PERSONALIZACJI, WYBOR_GRACZA, RANKING, ROZGRYWKA };
     StanAplikacji obecnyStan = MENU_GLOWNE;
-
-    int wybranyStyl = 1;
-    int wybraneTlo = 1;
+    
+    int wybranyStyl = 1; 
+    int wybraneTlo = 1;  
     std::string wpisywanyNick = "";
     int docelowyTrybGry = 1;
     int zakladkaRankingu = 1;
     std::vector<std::string> listaZapisanych = gra.wczytajProfile();
 
-    // Definicje przycisków
     sf::FloatRect btn1Kolor(350.f, 250.f, 300.f, 50.f);
     sf::FloatRect btn2Kolory(350.f, 330.f, 300.f, 50.f);
     sf::FloatRect btn4Kolory(350.f, 410.f, 300.f, 50.f);
@@ -192,7 +203,6 @@ int main() {
     sf::FloatRect btnPersonalizacja(350.f, 570.f, 300.f, 50.f);
     sf::FloatRect btnWroc(100.f, 700.f, 200.f, 45.f);
 
-    // Definicja stonowanych kolorów
     sf::Color ciemnyZielony(0, 130, 0);
     sf::Color ciemnyCzerwony(140, 40, 40);
     sf::Color szary(45, 45, 45);
@@ -245,16 +255,22 @@ int main() {
                     if (czyKliknieto(sf::FloatRect(100.f, 450.f, 250.f, 45.f), myszPos)) wybraneTlo = 3;
                 }
                 else if (obecnyStan == ROZGRYWKA) {
-                    // Obsługa ukrytego przycisku DEV
-                    if (czyKliknieto(sf::FloatRect(850.f, 700.f, 120.f, 40.f), myszPos)) {
+                    if (czyKliknieto(sf::FloatRect(740.f, 100.f, 100.f, 30.f), myszPos)) {
+                        gra.znajdzWskazowke();
+                    }
+                    else if (czyKliknieto(sf::FloatRect(850.f, 700.f, 120.f, 40.f), myszPos)) {
                         gra.zapisz_stan();
-                        // Wymuszenie wygranej na potrzebę testów
-                        gra.stan = WYGRANA;
+                        gra.stan = WYGRANA; 
                         gra.zapiszWynikRanking(gra.obliczWynik());
                         gra.wynikZapisany = true;
                     }
-                    else if (gra.czyKoniecGry()) { gra.resetuj(); obecnyStan = MENU_GLOWNE; }
-                    else gra.obsluzKlikniecie(myszPos);
+                    else if (gra.czyKoniecGry()) { 
+                        gra.resetuj(); 
+                        obecnyStan = MENU_GLOWNE; 
+                    }
+                    else {
+                        gra.obsluzKlikniecie(myszPos);
+                    }
                 }
             }
 
@@ -265,104 +281,103 @@ int main() {
         window.clear(sf::Color(20, 50, 30));
 
         if (obecnyStan == MENU_GLOWNE) {
-            sf::Text tTytul("PASJANS PAJAK", font, 60);
-            tTytul.setFillColor(sf::Color::Yellow);
-            tTytul.setPosition(500.f - tTytul.getLocalBounds().width/2.f, 80.f);
+            sf::Text tTytul("PASJANS PAJAK", font, 60); 
+            tTytul.setFillColor(sf::Color::Yellow); 
+            tTytul.setPosition(500.f - tTytul.getLocalBounds().width/2.f, 80.f); 
             window.draw(tTytul);
 
             std::pair<sf::FloatRect, std::string> btns[] = {
-                {btn1Kolor, "Graj: 1 Kolor"}, {btn2Kolory, "Graj: 2 Kolory"},
+                {btn1Kolor, "Graj: 1 Kolor"}, {btn2Kolory, "Graj: 2 Kolory"}, 
                 {btn4Kolory, "Graj: 4 Kolory"}, {btnRanking, "Ranking"}, {btnPersonalizacja, "Personalizacja"}
             };
             for(auto& p : btns) {
-                sf::RectangleShape r(sf::Vector2f(p.first.width, p.first.height));
-                r.setPosition(p.first.left, p.first.top);
-                r.setFillColor(szary);
-                r.setOutlineThickness(2);
+                sf::RectangleShape r(sf::Vector2f(p.first.width, p.first.height)); 
+                r.setPosition(p.first.left, p.first.top); 
+                r.setFillColor(szary); 
+                r.setOutlineThickness(2); 
                 window.draw(r);
 
-                sf::Text t(p.second, font, 20);
-                t.setPosition(p.first.left + (p.first.width - t.getLocalBounds().width)/2.f, p.first.top + 12.f);
+                sf::Text t(p.second, font, 20); 
+                t.setPosition(p.first.left + (p.first.width - t.getLocalBounds().width)/2.f, p.first.top + 12.f); 
                 window.draw(t);
             }
         }
         else if (obecnyStan == WYBOR_GRACZA) {
-            sf::Text tQ("KTO GRA?", font, 40);
-            tQ.setPosition(100.f, 50.f);
+            sf::Text tQ("KTO GRA?", font, 40); 
+            tQ.setPosition(100.f, 50.f); 
             tQ.setFillColor(sf::Color::Yellow);
             window.draw(tQ);
 
-            sf::RectangleShape pole(sf::Vector2f(300.f, 50.f));
-            pole.setPosition(300.f, 150.f);
-            pole.setFillColor(sf::Color(10, 10, 10));
+            sf::RectangleShape pole(sf::Vector2f(300.f, 50.f)); 
+            pole.setPosition(300.f, 150.f); 
+            pole.setFillColor(sf::Color(10, 10, 10)); 
             pole.setOutlineThickness(2.f);
             window.draw(pole);
 
-            sf::Text tW(wpisywanyNick + (((int)(gra.czas_gry*2)%2==0)?"_":""), font, 24);
-            tW.setPosition(310.f, 160.f);
+            sf::Text tW(wpisywanyNick + (((int)(gra.czas_gry*2)%2==0)?"_":""), font, 24); 
+            tW.setPosition(310.f, 160.f); 
             window.draw(tW);
 
-            sf::RectangleShape bZ(sf::Vector2f(200.f, 50.f));
-            bZ.setPosition(650.f, 150.f);
-            bZ.setFillColor(ciemnyZielony);
+            sf::RectangleShape bZ(sf::Vector2f(200.f, 50.f)); 
+            bZ.setPosition(650.f, 150.f); 
+            bZ.setFillColor(ciemnyZielony); 
             bZ.setOutlineThickness(2.f);
             window.draw(bZ);
 
-            sf::Text tZ("ZAPISZ I GRAJ", font, 18);
-            tZ.setPosition(650.f + (200.f - tZ.getLocalBounds().width)/2.f, 165.f);
+            sf::Text tZ("ZAPISZ I GRAJ", font, 18); 
+            tZ.setPosition(650.f + (200.f - tZ.getLocalBounds().width)/2.f, 165.f); 
             window.draw(tZ);
 
             sf::Text txtLub("Zapisane profile:", font, 20);
-            txtLub.setPosition(100.f, 250.f);
+            txtLub.setPosition(100.f, 250.f); 
             window.draw(txtLub);
 
             for(size_t i=0; i<listaZapisanych.size(); ++i) {
                 float x = 100.f + (i % 4) * 200.f;
                 float y = 300.f + (i / 4) * 60.f;
-                sf::RectangleShape rP(sf::Vector2f(180.f, 40.f));
-                rP.setPosition(x, y);
-                rP.setFillColor(szary);
+                sf::RectangleShape rP(sf::Vector2f(180.f, 40.f)); 
+                rP.setPosition(x, y); 
+                rP.setFillColor(szary); 
                 rP.setOutlineThickness(1.f);
                 window.draw(rP);
 
-                sf::Text tP(listaZapisanych[i], font, 18);
-                tP.setPosition(x + (180.f - tP.getLocalBounds().width)/2.f, y + 10.f);
+                sf::Text tP(listaZapisanych[i], font, 18); 
+                tP.setPosition(x + (180.f - tP.getLocalBounds().width)/2.f, y + 10.f); 
                 window.draw(tP);
             }
 
-            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height));
-            rB.setPosition(btnWroc.left, btnWroc.top);
-            rB.setFillColor(ciemnyCzerwony);
+            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height)); 
+            rB.setPosition(btnWroc.left, btnWroc.top); 
+            rB.setFillColor(ciemnyCzerwony); 
             rB.setOutlineThickness(2.f);
             window.draw(rB);
 
-            sf::Text tB("Wstecz", font, 18);
-            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f);
+            sf::Text tB("Wstecz", font, 18); 
+            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f); 
             window.draw(tB);
         }
         else if (obecnyStan == RANKING) {
-            sf::Text tR("TABELA WYNIKOW", font, 40);
-            tR.setPosition(500.f - tR.getLocalBounds().width/2.f, 50.f);
+            sf::Text tR("TABELA WYNIKOW", font, 40); 
+            tR.setPosition(500.f - tR.getLocalBounds().width/2.f, 50.f); 
             tR.setFillColor(sf::Color::Yellow);
             window.draw(tR);
 
-            int tryby[] = {1, 2, 4};
+            int tryby[] = {1, 2, 4}; 
             sf::FloatRect tabs[] = {sf::FloatRect(200,150,180,40), sf::FloatRect(410,150,180,40), sf::FloatRect(620,150,180,40)};
             for(int i=0; i<3; ++i) {
-                sf::RectangleShape rT(sf::Vector2f(180,40));
-                rT.setPosition(tabs[i].left, tabs[i].top);
-                rT.setFillColor(zakladkaRankingu == tryby[i] ? ciemnyZielony : szary);
+                sf::RectangleShape rT(sf::Vector2f(180,40)); 
+                rT.setPosition(tabs[i].left, tabs[i].top); 
+                rT.setFillColor(zakladkaRankingu == tryby[i] ? ciemnyZielony : szary); 
                 rT.setOutlineThickness(2.f);
                 window.draw(rT);
 
-                sf::Text tT(std::to_string(tryby[i]) + " Kolor", font, 18);
-                tT.setPosition(tabs[i].left + (180.f - tT.getLocalBounds().width)/2.f, tabs[i].top + 10.f);
+                sf::Text tT(std::to_string(tryby[i]) + " Kolor", font, 18); 
+                tT.setPosition(tabs[i].left + (180.f - tT.getLocalBounds().width)/2.f, tabs[i].top + 10.f); 
                 window.draw(tT);
             }
 
-            // Poprawione, przyciemniane tło rankingu
             sf::RectangleShape tloRankingu(sf::Vector2f(600.f, 400.f));
-            tloRankingu.setPosition(200.f, 220.f);
+            tloRankingu.setPosition(200.f, 220.f); 
             tloRankingu.setFillColor(sf::Color(15, 15, 15, 200));
             tloRankingu.setOutlineThickness(2.f);
             tloRankingu.setOutlineColor(sf::Color(100, 100, 100));
@@ -371,143 +386,140 @@ int main() {
             auto rnk = gra.pobierzRanking(zakladkaRankingu);
             if (rnk.empty()) {
                 sf::Text txtPuste("Brak wynikow. Badz pierwszy!", font, 24);
-                txtPuste.setPosition(500.f - txtPuste.getLocalBounds().width/2.f, 400.f);
+                txtPuste.setPosition(500.f - txtPuste.getLocalBounds().width/2.f, 400.f); 
                 txtPuste.setFillColor(sf::Color(150, 150, 150));
                 window.draw(txtPuste);
             } else {
                 for(size_t i=0; i<rnk.size() && i<10; ++i) {
-                    sf::Text tNum(std::to_string(i+1) + ".", font, 22);
-                    tNum.setPosition(230.f, 240.f + i*35.f);
+                    sf::Text tNum(std::to_string(i+1) + ".", font, 22); 
+                    tNum.setPosition(230.f, 240.f + i*35.f); 
                     window.draw(tNum);
 
-                    sf::Text tL(rnk[i].nick, font, 22);
-                    tL.setPosition(280.f, 240.f + i*35.f);
+                    sf::Text tL(rnk[i].nick, font, 22); 
+                    tL.setPosition(280.f, 240.f + i*35.f); 
                     tL.setFillColor(sf::Color::Cyan);
                     window.draw(tL);
 
-                    sf::Text tS(std::to_string(rnk[i].punkty) + " pkt", font, 22);
-                    tS.setPosition(650.f, 240.f + i*35.f);
+                    sf::Text tS(std::to_string(rnk[i].punkty) + " pkt", font, 22); 
+                    tS.setPosition(650.f, 240.f + i*35.f); 
                     tS.setFillColor(sf::Color::Yellow);
                     window.draw(tS);
                 }
             }
 
-            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height));
-            rB.setPosition(btnWroc.left, btnWroc.top);
-            rB.setFillColor(ciemnyCzerwony);
+            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height)); 
+            rB.setPosition(btnWroc.left, btnWroc.top); 
+            rB.setFillColor(ciemnyCzerwony); 
             rB.setOutlineThickness(2.f);
             window.draw(rB);
 
-            sf::Text tB("Wstecz", font, 18);
-            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f);
+            sf::Text tB("Wstecz", font, 18); 
+            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f); 
             window.draw(tB);
         }
         else if (obecnyStan == MENU_PERSONALIZACJI) {
-            sf::Text tP("PERSONALIZACJA", font, 40);
-            tP.setPosition(100.f, 40.f);
+            sf::Text tP("PERSONALIZACJA", font, 40); 
+            tP.setPosition(100.f, 40.f); 
             window.draw(tP);
 
-            // Sekcja Talii
-            sf::Text tT("WYBOR TALII:", font, 20);
-            tT.setPosition(100.f, 120.f);
-            tT.setFillColor(sf::Color::Yellow);
+            sf::Text tT("WYBOR TALII:", font, 20); 
+            tT.setPosition(100.f, 120.f); 
+            tT.setFillColor(sf::Color::Yellow); 
             window.draw(tT);
 
-            sf::RectangleShape rS1(sf::Vector2f(250.f, 45.f));
-            rS1.setPosition(100.f, 160.f);
-            rS1.setFillColor(wybranyStyl == 1 ? ciemnyZielony : szary);
+            sf::RectangleShape rS1(sf::Vector2f(250.f, 45.f)); 
+            rS1.setPosition(100.f, 160.f); 
+            rS1.setFillColor(wybranyStyl == 1 ? ciemnyZielony : szary); 
             rS1.setOutlineThickness(2.f);
             window.draw(rS1);
-            sf::Text tS1("Styl: Pikselowy", font, 18);
-            tS1.setPosition(100.f + (250.f - tS1.getLocalBounds().width)/2.f, 172.f);
+            sf::Text tS1("Styl: Pikselowy", font, 18); 
+            tS1.setPosition(100.f + (250.f - tS1.getLocalBounds().width)/2.f, 172.f); 
             window.draw(tS1);
 
-            sf::RectangleShape rS2(sf::Vector2f(250.f, 45.f));
-            rS2.setPosition(100.f, 215.f);
-            rS2.setFillColor(wybranyStyl == 2 ? ciemnyZielony : szary);
+            sf::RectangleShape rS2(sf::Vector2f(250.f, 45.f)); 
+            rS2.setPosition(100.f, 215.f); 
+            rS2.setFillColor(wybranyStyl == 2 ? ciemnyZielony : szary); 
             rS2.setOutlineThickness(2.f);
             window.draw(rS2);
-            sf::Text tS2("Styl: Wektorowy", font, 18);
-            tS2.setPosition(100.f + (250.f - tS2.getLocalBounds().width)/2.f, 227.f);
+            sf::Text tS2("Styl: Wektorowy", font, 18); 
+            tS2.setPosition(100.f + (250.f - tS2.getLocalBounds().width)/2.f, 227.f); 
             window.draw(tS2);
 
-            // Sekcja Stołu
-            sf::Text tSt("WYBOR STOLU:", font, 20);
-            tSt.setPosition(100.f, 300.f);
-            tSt.setFillColor(sf::Color::Yellow);
+            sf::Text tSt("WYBOR STOLU:", font, 20); 
+            tSt.setPosition(100.f, 300.f); 
+            tSt.setFillColor(sf::Color::Yellow); 
             window.draw(tSt);
 
-            sf::RectangleShape rT1(sf::Vector2f(250.f, 45.f));
-            rT1.setPosition(100.f, 340.f);
-            rT1.setFillColor(wybraneTlo == 1 ? ciemnyZielony : szary);
+            sf::RectangleShape rT1(sf::Vector2f(250.f, 45.f)); 
+            rT1.setPosition(100.f, 340.f); 
+            rT1.setFillColor(wybraneTlo == 1 ? ciemnyZielony : szary); 
             rT1.setOutlineThickness(2.f);
             window.draw(rT1);
-            sf::Text tT1("Stol: Drewno", font, 18);
-            tT1.setPosition(100.f + (250.f - tT1.getLocalBounds().width)/2.f, 352.f);
+            sf::Text tT1("Stol: Drewno", font, 18); 
+            tT1.setPosition(100.f + (250.f - tT1.getLocalBounds().width)/2.f, 352.f); 
             window.draw(tT1);
 
-            sf::RectangleShape rT2(sf::Vector2f(250.f, 45.f));
-            rT2.setPosition(100.f, 395.f);
-            rT2.setFillColor(wybraneTlo == 2 ? ciemnyZielony : szary);
+            sf::RectangleShape rT2(sf::Vector2f(250.f, 45.f)); 
+            rT2.setPosition(100.f, 395.f); 
+            rT2.setFillColor(wybraneTlo == 2 ? ciemnyZielony : szary); 
             rT2.setOutlineThickness(2.f);
             window.draw(rT2);
-            sf::Text tT2("Stol: Sukno", font, 18);
-            tT2.setPosition(100.f + (250.f - tT2.getLocalBounds().width)/2.f, 407.f);
+            sf::Text tT2("Stol: Sukno", font, 18); 
+            tT2.setPosition(100.f + (250.f - tT2.getLocalBounds().width)/2.f, 407.f); 
             window.draw(tT2);
 
-            sf::RectangleShape rT3(sf::Vector2f(250.f, 45.f));
-            rT3.setPosition(100.f, 450.f);
-            rT3.setFillColor(wybraneTlo == 3 ? ciemnyZielony : szary);
+            sf::RectangleShape rT3(sf::Vector2f(250.f, 45.f)); 
+            rT3.setPosition(100.f, 450.f); 
+            rT3.setFillColor(wybraneTlo == 3 ? ciemnyZielony : szary); 
             rT3.setOutlineThickness(2.f);
             window.draw(rT3);
-            sf::Text tT3("Stol: Zakard", font, 18);
-            tT3.setPosition(100.f + (250.f - tT3.getLocalBounds().width)/2.f, 462.f);
+            sf::Text tT3("Stol: Zakard", font, 18); 
+            tT3.setPosition(100.f + (250.f - tT3.getLocalBounds().width)/2.f, 462.f); 
             window.draw(tT3);
 
-            // LIVE PREVIEW BOX
-            sf::RectangleShape pBox(sf::Vector2f(450.f, 450.f));
-            pBox.setPosition(450.f, 140.f);
-            pBox.setFillColor(sf::Color::Black);
-            pBox.setOutlineThickness(3.f);
-            pBox.setOutlineColor(sf::Color::Yellow);
+            sf::RectangleShape pBox(sf::Vector2f(450.f, 450.f)); 
+            pBox.setPosition(450.f, 140.f); 
+            pBox.setFillColor(sf::Color::Black); 
+            pBox.setOutlineThickness(3.f); 
+            pBox.setOutlineColor(sf::Color::Yellow); 
             window.draw(pBox);
 
-            sf::Sprite pTlo;
-            if(wybraneTlo == 1) pTlo.setTexture(gra.texTlo1);
-            else if(wybraneTlo == 2) pTlo.setTexture(gra.texTlo2);
+            sf::Sprite pTlo; 
+            if(wybraneTlo == 1) pTlo.setTexture(gra.texTlo1); 
+            else if(wybraneTlo == 2) pTlo.setTexture(gra.texTlo2); 
             else pTlo.setTexture(gra.texTlo3);
 
-            pTlo.setPosition(470.f, 200.f);
-            pTlo.setScale(410.f / pTlo.getLocalBounds().width, 310.f / pTlo.getLocalBounds().height);
+            pTlo.setPosition(470.f, 200.f); 
+            pTlo.setScale(410.f / pTlo.getLocalBounds().width, 310.f / pTlo.getLocalBounds().height); 
             window.draw(pTlo);
-
+            
             sf::Sprite pA, pR;
-            if(wybranyStyl == 1) {
-                pA.setTexture(gra.texAwers[13]);
-                pR.setTexture(gra.texRewers);
-                pA.setScale(86.f / pA.getLocalBounds().width, 120.f / pA.getLocalBounds().height);
-                pR.setScale(86.f / pR.getLocalBounds().width, 120.f / pR.getLocalBounds().height);
-                pA.setPosition(510.f, 250.f);
-                pR.setPosition(630.f, 250.f);
-            } else {
-                pA.setTexture(gra.texAwers2[13]);
-                pR.setTexture(gra.texRewers2);
-                pA.setScale(70.f / pA.getLocalBounds().width, 100.f / pA.getLocalBounds().height);
-                pR.setScale(70.f / pR.getLocalBounds().width, 100.f / pR.getLocalBounds().height);
-                pA.setPosition(520.f, 260.f);
-                pR.setPosition(630.f, 260.f);
+            if(wybranyStyl == 1) { 
+                pA.setTexture(gra.texAwers[0][13]); // Zawsze wyświetli pika na podglądzie
+                pR.setTexture(gra.texRewers); 
+                pA.setScale(86.f / pA.getLocalBounds().width, 120.f / pA.getLocalBounds().height); 
+                pR.setScale(86.f / pR.getLocalBounds().width, 120.f / pR.getLocalBounds().height); 
+                pA.setPosition(510.f, 250.f); 
+                pR.setPosition(630.f, 250.f); 
+            } else { 
+                pA.setTexture(gra.texAwers2[0][13]); 
+                pR.setTexture(gra.texRewers2); 
+                pA.setScale(70.f / pA.getLocalBounds().width, 100.f / pA.getLocalBounds().height); 
+                pR.setScale(70.f / pR.getLocalBounds().width, 100.f / pR.getLocalBounds().height); 
+                pA.setPosition(520.f, 260.f); 
+                pR.setPosition(630.f, 260.f); 
             }
-            window.draw(pA);
+            window.draw(pA); 
             window.draw(pR);
 
-            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height));
-            rB.setPosition(btnWroc.left, btnWroc.top);
-            rB.setFillColor(ciemnyCzerwony);
+            sf::RectangleShape rB(sf::Vector2f(btnWroc.width, btnWroc.height)); 
+            rB.setPosition(btnWroc.left, btnWroc.top); 
+            rB.setFillColor(ciemnyCzerwony); 
             rB.setOutlineThickness(2.f);
             window.draw(rB);
 
-            sf::Text tB("Wstecz", font, 18);
-            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f);
+            sf::Text tB("Wstecz", font, 18); 
+            tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f); 
             window.draw(tB);
         }
         else if (obecnyStan == ROZGRYWKA) {
