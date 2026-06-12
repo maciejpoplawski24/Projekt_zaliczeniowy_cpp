@@ -14,3 +14,13 @@ add_executable(TestSFML main.cpp GraPajak.cpp GraPajak.h)
 
 # Klasyczne linkowanie, 100% pewności w wersji 2.6.1
 target_link_libraries(TestSFML PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
+
+# Automatyczne kopiowanie zasobów do folderu budowania (dla prowadzącego)
+add_custom_command(TARGET TestSFML POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/arial.ttf"
+        $<TARGET_FILE_DIR:TestSFML>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets"
+        $<TARGET_FILE_DIR:TestSFML>/assets
+)

@@ -277,7 +277,7 @@ void GraPajak::obsluzPuszczenie(int wybranyStyl) {
 void GraPajak::aktualizujMysz(sf::Vector2f pos) { mousePos = pos; }
 
 void GraPajak::zaladujTekstury() {
-    if (bufWygrana.loadFromFile("C:/Users/krax2/Desktop/assets/566203__colorscrimsontears__fanfare-rpg.wav")) {
+    if (bufWygrana.loadFromFile("assets/566203__colorscrimsontears__fanfare-rpg.wav")) {
         dzwiekWygrana.setBuffer(bufWygrana);
     }
 
