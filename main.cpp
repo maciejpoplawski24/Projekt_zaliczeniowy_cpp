@@ -146,7 +146,14 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
         window.draw(rD);
     }
 
-    if (stan != W_TRAKCIE) {
+    if (stan == ANIMACJA_ROZDAWANIA) {
+        aktualizujAnimacjeRozdania();
+        if (!kolejkaRozdania.empty()) {
+            window.draw(kolejkaRozdania.front().sprite);
+        }
+    }
+
+    if (stan == PRZEGRANA || stan == WYGRANA) {
         if (stan == WYGRANA && !ekranPodsumowania) {
             aktualizujAnimacjeWygranej();
             for (const auto& ka : animowaneKarty) {
@@ -266,6 +273,7 @@ int main() {
                     if (czyKliknieto(sf::FloatRect(200.f, 150.f, 180.f, 40.f), myszPos)) zakladkaRankingu = 1;
                     if (czyKliknieto(sf::FloatRect(410.f, 150.f, 180.f, 40.f), myszPos)) zakladkaRankingu = 2;
                     if (czyKliknieto(sf::FloatRect(620.f, 150.f, 180.f, 40.f), myszPos)) zakladkaRankingu = 4;
+                    if (czyKliknieto(sf::FloatRect(700.f, 700.f, 200.f, 45.f), myszPos)) gra.wyczyscRanking(zakladkaRankingu);
                 }
                 else if (obecnyStan == MENU_PERSONALIZACJI) {
                     if (czyKliknieto(btnWroc, myszPos)) obecnyStan = MENU_GLOWNE;
@@ -444,6 +452,17 @@ int main() {
             sf::Text tB("Wstecz", font, 18); 
             tB.setPosition(btnWroc.left + (btnWroc.width - tB.getLocalBounds().width)/2.f, btnWroc.top + 12.f); 
             window.draw(tB);
+
+            sf::FloatRect btnCzysc(700.f, btnWroc.top, 200.f, 45.f);
+            sf::RectangleShape rC(sf::Vector2f(btnCzysc.width, btnCzysc.height));
+            rC.setPosition(btnCzysc.left, btnCzysc.top);
+            rC.setFillColor(ciemnyCzerwony);
+            rC.setOutlineThickness(2.f);
+            window.draw(rC);
+
+            sf::Text tC("Wyczysc tabele", font, 18);
+            tC.setPosition(btnCzysc.left + (btnCzysc.width - tC.getLocalBounds().width)/2.f, btnCzysc.top + 12.f);
+            window.draw(tC);
         }
         else if (obecnyStan == MENU_PERSONALIZACJI) {
             sf::Text tP("PERSONALIZACJA", font, 40); 

@@ -28,6 +28,13 @@ void GraPajak::tasuj() {
 }
 
 void GraPajak::rozdaj_poczatkowe() {
+    float offX = 90.f; float offY = 20.f; float startY = 200.f;
+    float drawSzer = (obecnyStyl == 1) ? 86.f : 70.f;
+    float drawWys  = (obecnyStyl == 1) ? 120.f : 100.f;
+    float shiftX   = (obecnyStyl == 1) ? -8.f : 0.f;
+    float shiftY   = (obecnyStyl == 1) ? -10.f : 0.f;
+    sf::Vector2f startPos(850.f + shiftX, 50.f + shiftY);
+
     for (int i = 0; i < 10; ++i) {
         int ile_kart = (i < 4) ? 6 : 5;
         for (int j = 0; j < ile_kart; ++j) {
@@ -35,9 +42,28 @@ void GraPajak::rozdaj_poczatkowe() {
             Karta k = talia.back();
             talia.pop_back();
             if (j == ile_kart - 1) k.odkryta = true;
-            stosy[i].push_back(k);
+            
+            KartaAnimacjaRozdania kar;
+            kar.karta = k;
+            if (k.odkryta) {
+                if (obecnyStyl == 1) kar.sprite.setTexture(texAwers[k.kolor][k.wartosc]);
+                else kar.sprite.setTexture(texAwers2[k.kolor][k.wartosc]);
+            } else {
+                if (obecnyStyl == 1) kar.sprite.setTexture(texRewers);
+                else kar.sprite.setTexture(texRewers2);
+            }
+            kar.sprite.setScale(drawSzer / kar.sprite.getLocalBounds().width, drawWys / kar.sprite.getLocalBounds().height);
+            kar.start = startPos;
+            kar.cel = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+            kar.t = 0.f;
+            kar.predkoscLatania = 0.08f; 
+            kar.celKolumna = i;
+            kar.sprite.setPosition(kar.start);
+            
+            kolejkaRozdania.push_back(kar);
         }
     }
+    stan = ANIMACJA_ROZDAWANIA;
 }
 
 void GraPajak::aktualizujCzas() {
@@ -75,17 +101,37 @@ void GraPajak::cofnij_ruch() {
 }
 
 void GraPajak::dobierz_z_talii() {
-    if (talia.empty() || stan != W_TRAKCIE) return;
+    if (talia.empty() || stan == ANIMACJA_ROZDAWANIA || stan != W_TRAKCIE) return;
     zapisz_stan();
+
+    float offX = 90.f; float offY = 20.f; float startY = 200.f;
+    float drawSzer = (obecnyStyl == 1) ? 86.f : 70.f;
+    float drawWys  = (obecnyStyl == 1) ? 120.f : 100.f;
+    float shiftX   = (obecnyStyl == 1) ? -8.f : 0.f;
+    float shiftY   = (obecnyStyl == 1) ? -10.f : 0.f;
+    sf::Vector2f startPos(850.f + shiftX, 50.f + shiftY);
+
     for (int i = 0; i < 10; ++i) {
         if (talia.empty()) break;
         Karta k = talia.back();
         talia.pop_back();
         k.odkryta = true;
-        stosy[i].push_back(k);
+        
+        KartaAnimacjaRozdania kar;
+        kar.karta = k;
+        if (obecnyStyl == 1) kar.sprite.setTexture(texAwers[k.kolor][k.wartosc]);
+        else kar.sprite.setTexture(texAwers2[k.kolor][k.wartosc]);
+        kar.sprite.setScale(drawSzer / kar.sprite.getLocalBounds().width, drawWys / kar.sprite.getLocalBounds().height);
+        kar.start = startPos;
+        int j = stosy[i].size();
+        kar.cel = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+        kar.t = 0.f;
+        kar.predkoscLatania = 0.08f; 
+        kar.celKolumna = i;
+        kar.sprite.setPosition(kar.start);
+        kolejkaRozdania.push_back(kar);
     }
-    sprawdz_sekwencje();
-    sprawdz_stan_gry();
+    stan = ANIMACJA_ROZDAWANIA;
 }
 
 void GraPajak::sprawdz_sekwencje() {
@@ -131,6 +177,7 @@ bool GraPajak::czy_sa_ruchy() {
 }
 
 void GraPajak::sprawdz_stan_gry() {
+    if (stan == ANIMACJA_ROZDAWANIA) return;
     if (zebrane_krolestwa == 8) {
         stan = WYGRANA;
         if (!wynikZapisany) {
@@ -163,7 +210,11 @@ void GraPajak::obsluzKlikniecie(sf::Vector2f klik, int wybranyStyl) {
         return;
     }
 
-    if (stan != W_TRAKCIE) return;
+    if (stan != W_TRAKCIE && stan != ANIMACJA_ROZDAWANIA) return;
+    if (stan == ANIMACJA_ROZDAWANIA) {
+        przyspieszRozdawanie();
+        return;
+    }
 
     float szer = 70.f; float wys = 100.f;
     float offX = 90.f; float offY = 20.f;
@@ -226,6 +277,10 @@ void GraPajak::obsluzPuszczenie(int wybranyStyl) {
 void GraPajak::aktualizujMysz(sf::Vector2f pos) { mousePos = pos; }
 
 void GraPajak::zaladujTekstury() {
+    if (bufWygrana.loadFromFile("C:/Users/krax2/Desktop/assets/566203__colorscrimsontears__fanfare-rpg.wav")) {
+        dzwiekWygrana.setBuffer(bufWygrana);
+    }
+
     texTlo1.loadFromFile("assets/tlo1.jpg"); 
     texTlo2.loadFromFile("assets/tlo2.jpg"); 
     texTlo3.loadFromFile("assets/tlo3.jpg"); 
@@ -258,6 +313,7 @@ void GraPajak::resetuj() {
     wynikZapisany = false;
     wyczyscWskazowke();
     animowaneKarty.clear();
+    kolejkaRozdania.clear();
     ekranPodsumowania = false;
 
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
@@ -275,6 +331,7 @@ void GraPajak::resetuj() {
 }
 
 void GraPajak::inicjujAnimacjeWygranej(int wybranyStyl) {
+    dzwiekWygrana.play();
     animowaneKarty.clear();
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -331,6 +388,42 @@ void GraPajak::aktualizujAnimacjeWygranej() {
         
         ka.sprite.setPosition(ka.pozycja);
     }
+}
+
+void GraPajak::aktualizujAnimacjeRozdania() {
+    if (kolejkaRozdania.empty()) {
+        if (stan == ANIMACJA_ROZDAWANIA) {
+            sprawdz_sekwencje();
+            stan = W_TRAKCIE;
+            sprawdz_stan_gry();
+        }
+        return;
+    }
+    
+    auto& kar = kolejkaRozdania.front();
+    kar.t += kar.predkoscLatania;
+    if (kar.t >= 1.f) {
+        stosy[kar.celKolumna].push_back(kar.karta);
+        kolejkaRozdania.pop_front();
+    } else {
+        float posX = kar.start.x + (kar.cel.x - kar.start.x) * kar.t;
+        float posY = kar.start.y + (kar.cel.y - kar.start.y) * kar.t;
+        kar.sprite.setPosition(posX, posY);
+    }
+}
+
+void GraPajak::przyspieszRozdawanie() {
+    if (stan != ANIMACJA_ROZDAWANIA || kolejkaRozdania.empty()) return;
+    
+    // Wypycha wszystkie resztki z kolejki na plansze od razu
+    while (!kolejkaRozdania.empty()) {
+        stosy[kolejkaRozdania.front().celKolumna].push_back(kolejkaRozdania.front().karta);
+        kolejkaRozdania.pop_front();
+    }
+    
+    sprawdz_sekwencje();
+    stan = W_TRAKCIE;
+    sprawdz_stan_gry();
 }
 
 void GraPajak::znajdzWskazowke() {
@@ -390,9 +483,16 @@ void GraPajak::dodajProfil(const std::string& nick) {
 }
 
 void GraPajak::zapiszWynikRanking(int punkty) {
+    if (punkty > 95000) return; // Zablokowanie wyników "DEV: WYGRAJ"
     std::string nazwaPliku = "ranking_" + std::to_string(aktualnyTryb) + ".txt";
     std::ofstream plik(nazwaPliku, std::ios::app);
     plik << aktualnyGracz << " " << punkty << "\n";
+}
+
+void GraPajak::wyczyscRanking(int tryb) {
+    std::string nazwaPliku = "ranking_" + std::to_string(tryb) + ".txt";
+    std::ofstream plik(nazwaPliku, std::ios::trunc);
+    plik.close();
 }
 
 std::vector<WynikGracza> GraPajak::pobierzRanking(int tryb) {

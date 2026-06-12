@@ -2,7 +2,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <deque>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 
 struct WynikGracza {
     std::string nick;
@@ -23,12 +25,22 @@ struct StanGry {
     float czas_gry; 
 };
 
-enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA };
+enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA, ANIMACJA_ROZDAWANIA };
 
 struct KartaAnimacja {
     sf::Sprite sprite;
     sf::Vector2f pozycja;
     sf::Vector2f predkosc;
+};
+
+struct KartaAnimacjaRozdania {
+    Karta karta;
+    sf::Sprite sprite;
+    sf::Vector2f start;
+    sf::Vector2f cel;
+    float t;
+    float predkoscLatania;
+    int celKolumna;
 };
 
 class GraPajak {
@@ -64,8 +76,12 @@ public:
     
     bool ekranPodsumowania = false;
 
+    // --- DŹWIĘKI ---
+    sf::SoundBuffer bufWygrana;
+    sf::Sound dzwiekWygrana;
+
     // --- TEKSTURY ---
-    sf::Texture texTlo1; 
+    sf::Texture texTlo1;  
     sf::Texture texTlo2; 
     sf::Texture texTlo3; 
     sf::Texture texRewers;
@@ -92,12 +108,16 @@ public:
     void aktualizujMysz(sf::Vector2f pos);
     void rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, int wybraneTlo);
     void resetuj();
-    bool czyKoniecGry() const { return stan != W_TRAKCIE; }
+    bool czyKoniecGry() const { return stan == WYGRANA || stan == PRZEGRANA; }
     void zaladujTekstury();
     
     std::vector<KartaAnimacja> animowaneKarty;
     void inicjujAnimacjeWygranej(int wybranyStyl);
     void aktualizujAnimacjeWygranej();
+    
+    std::deque<KartaAnimacjaRozdania> kolejkaRozdania;
+    void aktualizujAnimacjeRozdania();
+    void przyspieszRozdawanie();
     
     void znajdzWskazowke();
     void wyczyscWskazowke() { pokazWskazowke = false; }
@@ -106,5 +126,6 @@ public:
     std::vector<std::string> wczytajProfile();
     void dodajProfil(const std::string& nick);
     void zapiszWynikRanking(int punkty);
+    void wyczyscRanking(int tryb);
     std::vector<WynikGracza> pobierzRanking(int tryb);
 };
