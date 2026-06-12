@@ -43,24 +43,19 @@ void GraPajak::rozdaj_poczatkowe() {
             talia.pop_back();
             if (j == ile_kart - 1) k.odkryta = true;
             
-            KartaAnimacjaRozdania kar;
-            kar.karta = k;
+            sf::Sprite spr;
             if (k.odkryta) {
-                if (obecnyStyl == 1) kar.sprite.setTexture(texAwers[k.kolor][k.wartosc]);
-                else kar.sprite.setTexture(texAwers2[k.kolor][k.wartosc]);
+                if (obecnyStyl == 1) spr.setTexture(texAwers[k.kolor][k.wartosc]);
+                else spr.setTexture(texAwers2[k.kolor][k.wartosc]);
             } else {
-                if (obecnyStyl == 1) kar.sprite.setTexture(texRewers);
-                else kar.sprite.setTexture(texRewers2);
+                if (obecnyStyl == 1) spr.setTexture(texRewers);
+                else spr.setTexture(texRewers2);
             }
-            kar.sprite.setScale(drawSzer / kar.sprite.getLocalBounds().width, drawWys / kar.sprite.getLocalBounds().height);
-            kar.start = startPos;
-            kar.cel = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
-            kar.t = 0.f;
-            kar.predkoscLatania = 0.08f; 
-            kar.celKolumna = i;
-            kar.sprite.setPosition(kar.start);
+            spr.setScale(drawSzer / spr.getLocalBounds().width, drawWys / spr.getLocalBounds().height);
             
-            kolejkaRozdania.push_back(kar);
+            sf::Vector2f cel(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+            float opoznienie = (i * ile_kart + j) * 0.02f; // Kaskadowe opoznienie dla lepszego efektu
+            obiektyGry.push_back(std::make_unique<AnimowanaKartaRozdania>(k, spr, startPos, cel, i, opoznienie));
         }
     }
     stan = ANIMACJA_ROZDAWANIA;
@@ -74,6 +69,37 @@ void GraPajak::aktualizujCzas() {
 int GraPajak::obliczWynik() {
     int wynik = BAZA_PUNKTOW - (static_cast<int>(czas_gry) * 50);
     return (wynik < 0) ? 0 : wynik;
+}
+
+void GraPajak::zapiszGreDoPliku(const std::string& sciezka) {
+    std::ofstream out(sciezka);
+    if (!out) return;
+    out << aktualnyGracz << "\n" << aktualnyTryb << "\n" << czas_gry << "\n" << zebrane_krolestwa << "\n";
+    out << talia.size() << "\n";
+    for (const auto& k : talia) out << k.wartosc << " " << k.kolor << " " << k.odkryta << "\n";
+    for (int i = 0; i < 10; ++i) {
+        out << stosy[i].size() << "\n";
+        for (const auto& k : stosy[i]) out << k.wartosc << " " << k.kolor << " " << k.odkryta << "\n";
+    }
+}
+
+void GraPajak::wczytajGreZPliku(const std::string& sciezka) {
+    std::ifstream in(sciezka);
+    if (!in) return;
+    in >> aktualnyGracz >> aktualnyTryb >> czas_gry >> zebrane_krolestwa;
+    size_t s; in >> s;
+    talia.clear();
+    for (size_t i = 0; i < s; ++i) { Karta k; in >> k.wartosc >> k.kolor >> k.odkryta; talia.push_back(k); }
+    for (int i = 0; i < 10; ++i) {
+        in >> s;
+        stosy[i].clear();
+        for (size_t j = 0; j < s; ++j) { Karta k; in >> k.wartosc >> k.kolor >> k.odkryta; stosy[i].push_back(k); }
+    }
+    stan = W_TRAKCIE;
+    historia.clear();
+    obiektyGry.clear();
+    ekranPodsumowania = false;
+    zegar.restart();
 }
 
 void GraPajak::zapisz_stan() {
@@ -117,19 +143,16 @@ void GraPajak::dobierz_z_talii() {
         talia.pop_back();
         k.odkryta = true;
         
-        KartaAnimacjaRozdania kar;
-        kar.karta = k;
-        if (obecnyStyl == 1) kar.sprite.setTexture(texAwers[k.kolor][k.wartosc]);
-        else kar.sprite.setTexture(texAwers2[k.kolor][k.wartosc]);
-        kar.sprite.setScale(drawSzer / kar.sprite.getLocalBounds().width, drawWys / kar.sprite.getLocalBounds().height);
-        kar.start = startPos;
+        sf::Sprite spr;
+        if (obecnyStyl == 1) spr.setTexture(texAwers[k.kolor][k.wartosc]);
+        else spr.setTexture(texAwers2[k.kolor][k.wartosc]);
+        spr.setScale(drawSzer / spr.getLocalBounds().width, drawWys / spr.getLocalBounds().height);
+        
         int j = stosy[i].size();
-        kar.cel = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
-        kar.t = 0.f;
-        kar.predkoscLatania = 0.08f; 
-        kar.celKolumna = i;
-        kar.sprite.setPosition(kar.start);
-        kolejkaRozdania.push_back(kar);
+        sf::Vector2f cel(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+        float opoznienie = i * 0.05f; 
+        
+        obiektyGry.push_back(std::make_unique<AnimowanaKartaRozdania>(k, spr, startPos, cel, i, opoznienie));
     }
     stan = ANIMACJA_ROZDAWANIA;
 }
@@ -184,7 +207,7 @@ void GraPajak::sprawdz_stan_gry() {
             zapiszWynikRanking(obliczWynik());
             wynikZapisany = true;
         }
-        if (animowaneKarty.empty()) {
+        if (obiektyGry.empty()) {
             inicjujAnimacjeWygranej(obecnyStyl);
         }
     }
@@ -204,7 +227,7 @@ void GraPajak::obsluzKlikniecie(sf::Vector2f klik, int wybranyStyl) {
         stan = WYGRANA;
         zapiszWynikRanking(obliczWynik());
         wynikZapisany = true;
-        if (animowaneKarty.empty()) {
+        if (obiektyGry.empty()) {
             inicjujAnimacjeWygranej(wybranyStyl);
         }
         return;
@@ -312,8 +335,7 @@ void GraPajak::resetuj() {
     isDragging = false;
     wynikZapisany = false;
     wyczyscWskazowke();
-    animowaneKarty.clear();
-    kolejkaRozdania.clear();
+    obiektyGry.clear();
     ekranPodsumowania = false;
 
     for (int zestaw = 0; zestaw < 8; ++zestaw) {
@@ -332,7 +354,7 @@ void GraPajak::resetuj() {
 
 void GraPajak::inicjujAnimacjeWygranej(int wybranyStyl) {
     dzwiekWygrana.play();
-    animowaneKarty.clear();
+    obiektyGry.clear();
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> disX(-10.f, 10.f);
@@ -348,77 +370,71 @@ void GraPajak::inicjujAnimacjeWygranej(int wybranyStyl) {
 
     for (int i = 0; i < 10; ++i) {
         for (size_t j = 0; j < stosy[i].size(); ++j) {
-            KartaAnimacja ka;
+            sf::Sprite spr;
             if (stosy[i][j].odkryta) {
-                if (wybranyStyl == 1) ka.sprite.setTexture(texAwers[stosy[i][j].kolor][stosy[i][j].wartosc]);
-                else ka.sprite.setTexture(texAwers2[stosy[i][j].kolor][stosy[i][j].wartosc]);
+                if (wybranyStyl == 1) spr.setTexture(texAwers[stosy[i][j].kolor][stosy[i][j].wartosc]);
+                else spr.setTexture(texAwers2[stosy[i][j].kolor][stosy[i][j].wartosc]);
             } else {
-                if (wybranyStyl == 1) ka.sprite.setTexture(texRewers);
-                else ka.sprite.setTexture(texRewers2);
+                if (wybranyStyl == 1) spr.setTexture(texRewers);
+                else spr.setTexture(texRewers2);
             }
-            ka.pozycja = sf::Vector2f(50.f + i * offX + shiftX, startY + j * offY + shiftY);
-            ka.sprite.setPosition(ka.pozycja);
-            ka.sprite.setScale(drawSzer / ka.sprite.getLocalBounds().width, drawWys / ka.sprite.getLocalBounds().height);
-            ka.predkosc = sf::Vector2f(disX(gen), disY(gen));
-            animowaneKarty.push_back(ka);
+            sf::Vector2f pos(50.f + i * offX + shiftX, startY + j * offY + shiftY);
+            spr.setScale(drawSzer / spr.getLocalBounds().width, drawWys / spr.getLocalBounds().height);
+            
+            sf::Vector2f vel(disX(gen) * 60.f, disY(gen) * 60.f); // px/s
+            float rotVel = (disX(gen) > 0 ? 1 : -1) * (100.f + std::abs(disY(gen)*10.f)); // stopnie/s
+            
+            obiektyGry.push_back(std::make_unique<AnimowanaKartaWygrana>(spr, pos, vel, rotVel));
         }
         stosy[i].clear();
     }
 }
 
-void GraPajak::aktualizujAnimacjeWygranej() {
-    float grawitacja = 0.4f;
-    for (auto& ka : animowaneKarty) {
-        ka.predkosc.y += grawitacja;
-        ka.pozycja += ka.predkosc;
+void GraPajak::aktualizujObiekty(float dt) {
+    if (stan == ANIMACJA_ROZDAWANIA) {
+        bool animacjeRozdaniaAktywne = false;
         
-        if (ka.pozycja.x < 0) {
-            ka.pozycja.x = 0;
-            ka.predkosc.x = -ka.predkosc.x * 0.8f;
-        } else if (ka.pozycja.x > 1000 - ka.sprite.getGlobalBounds().width) {
-            ka.pozycja.x = 1000 - ka.sprite.getGlobalBounds().width;
-            ka.predkosc.x = -ka.predkosc.x * 0.8f;
+        for (auto it = obiektyGry.begin(); it != obiektyGry.end(); ) {
+            auto animRozd = dynamic_cast<AnimowanaKartaRozdania*>(it->get());
+            if (animRozd) {
+                animacjeRozdaniaAktywne = true;
+                bool done = animRozd->aktualizuj(dt);
+                if (done) {
+                    stosy[animRozd->celKolumna].push_back(animRozd->karta);
+                    it = obiektyGry.erase(it);
+                } else {
+                    ++it;
+                }
+            } else {
+                (*it)->aktualizuj(dt);
+                ++it;
+            }
         }
         
-        if (ka.pozycja.y > 800 - ka.sprite.getGlobalBounds().height) {
-            ka.pozycja.y = 800 - ka.sprite.getGlobalBounds().height;
-            ka.predkosc.y = -ka.predkosc.y * 0.85f;
-            ka.predkosc.x *= 0.98f;
-        }
-        
-        ka.sprite.setPosition(ka.pozycja);
-    }
-}
-
-void GraPajak::aktualizujAnimacjeRozdania() {
-    if (kolejkaRozdania.empty()) {
-        if (stan == ANIMACJA_ROZDAWANIA) {
+        if (!animacjeRozdaniaAktywne && obiektyGry.empty()) {
             sprawdz_sekwencje();
             stan = W_TRAKCIE;
             sprawdz_stan_gry();
         }
-        return;
-    }
-    
-    auto& kar = kolejkaRozdania.front();
-    kar.t += kar.predkoscLatania;
-    if (kar.t >= 1.f) {
-        stosy[kar.celKolumna].push_back(kar.karta);
-        kolejkaRozdania.pop_front();
     } else {
-        float posX = kar.start.x + (kar.cel.x - kar.start.x) * kar.t;
-        float posY = kar.start.y + (kar.cel.y - kar.start.y) * kar.t;
-        kar.sprite.setPosition(posX, posY);
+        // Zwykla aktualizacja np. dla wygranej
+        for (auto& obj : obiektyGry) {
+            obj->aktualizuj(dt);
+        }
     }
 }
 
 void GraPajak::przyspieszRozdawanie() {
-    if (stan != ANIMACJA_ROZDAWANIA || kolejkaRozdania.empty()) return;
+    if (stan != ANIMACJA_ROZDAWANIA) return;
     
-    // Wypycha wszystkie resztki z kolejki na plansze od razu
-    while (!kolejkaRozdania.empty()) {
-        stosy[kolejkaRozdania.front().celKolumna].push_back(kolejkaRozdania.front().karta);
-        kolejkaRozdania.pop_front();
+    // Wypycha wszystkie resztki z kontenera na plansze od razu, używając dynamic_cast
+    for (auto it = obiektyGry.begin(); it != obiektyGry.end(); ) {
+        if (auto animRozd = dynamic_cast<AnimowanaKartaRozdania*>(it->get())) {
+            stosy[animRozd->celKolumna].push_back(animRozd->karta);
+            it = obiektyGry.erase(it);
+        } else {
+            ++it;
+        }
     }
     
     sprawdz_sekwencje();

@@ -146,19 +146,11 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
         window.draw(rD);
     }
 
-    if (stan == ANIMACJA_ROZDAWANIA) {
-        aktualizujAnimacjeRozdania();
-        if (!kolejkaRozdania.empty()) {
-            window.draw(kolejkaRozdania.front().sprite);
-        }
-    }
+    // Animacje sa obslugiwane poza funkcja rysuj() przez aktualizujObiekty(dt) i osobne rysowanie
 
     if (stan == PRZEGRANA || stan == WYGRANA) {
         if (stan == WYGRANA && !ekranPodsumowania) {
-            aktualizujAnimacjeWygranej();
-            for (const auto& ka : animowaneKarty) {
-                window.draw(ka.sprite);
-            }
+            // Animacje sa obslugiwane poza funkcja rysuj()
             sf::Text txtPomin("Kliknij LPM, aby wyswietlic podsumowanie", font, 22);
             txtPomin.setFillColor(sf::Color(255, 255, 255, 200));
             sf::FloatRect pRect = txtPomin.getLocalBounds();
@@ -172,10 +164,7 @@ void GraPajak::rysuj(sf::RenderWindow& window, sf::Font& font, int wybranyStyl, 
             window.draw(overlay);
 
             if (stan == WYGRANA) {
-                aktualizujAnimacjeWygranej();
-                for (const auto& ka : animowaneKarty) {
-                    window.draw(ka.sprite);
-                }
+                // Animacje sa obslugiwane poza funkcja rysuj()
             }
 
             sf::Text msg(stan == WYGRANA ? "ZWYCIESTWO!" : "BRAK RUCHOW!", font, 70);
@@ -230,12 +219,16 @@ int main() {
     sf::FloatRect btnRanking(350.f, 490.f, 300.f, 50.f);
     sf::FloatRect btnPersonalizacja(350.f, 570.f, 300.f, 50.f);
     sf::FloatRect btnWroc(100.f, 700.f, 200.f, 45.f);
+    sf::FloatRect btnWczytaj(700.f, 250.f, 200.f, 50.f);
+    sf::FloatRect btnZapisz(850.f, 650.f, 120.f, 40.f);
+    sf::Clock dtClock;
 
     sf::Color ciemnyZielony(0, 130, 0);
     sf::Color ciemnyCzerwony(140, 40, 40);
     sf::Color szary(45, 45, 45);
 
     while (window.isOpen()) {
+        float dt = dtClock.restart().asSeconds();
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
@@ -254,6 +247,7 @@ int main() {
                     else if (czyKliknieto(btn4Kolory, myszPos)) { docelowyTrybGry = 4; obecnyStan = WYBOR_GRACZA; wpisywanyNick = ""; }
                     else if (czyKliknieto(btnRanking, myszPos)) { obecnyStan = RANKING; zakladkaRankingu = 1; }
                     else if (czyKliknieto(btnPersonalizacja, myszPos)) obecnyStan = MENU_PERSONALIZACJI;
+                    else if (czyKliknieto(btnWczytaj, myszPos)) { gra.wczytajGreZPliku("save.txt"); obecnyStan = ROZGRYWKA; }
                 }
                 else if (obecnyStan == WYBOR_GRACZA) {
                     if (czyKliknieto(btnWroc, myszPos)) obecnyStan = MENU_GLOWNE;
@@ -292,9 +286,12 @@ int main() {
                         gra.stan = WYGRANA; 
                         gra.zapiszWynikRanking(gra.obliczWynik());
                         gra.wynikZapisany = true;
-                        if (gra.animowaneKarty.empty()) {
+                        if (gra.obiektyGry.empty()) {
                             gra.inicjujAnimacjeWygranej(wybranyStyl);
                         }
+                    }
+                    else if (czyKliknieto(btnZapisz, myszPos)) {
+                        gra.zapiszGreDoPliku("save.txt");
                     }
                     else if (gra.czyKoniecGry()) { 
                         if (gra.stan == WYGRANA && !gra.ekranPodsumowania) {
@@ -337,6 +334,15 @@ int main() {
                 t.setPosition(p.first.left + (p.first.width - t.getLocalBounds().width)/2.f, p.first.top + 12.f); 
                 window.draw(t);
             }
+
+            sf::RectangleShape rW(sf::Vector2f(btnWczytaj.width, btnWczytaj.height));
+            rW.setPosition(btnWczytaj.left, btnWczytaj.top);
+            rW.setFillColor(ciemnyZielony);
+            rW.setOutlineThickness(2.f);
+            window.draw(rW);
+            sf::Text tW("WCZYTAJ GRE", font, 18);
+            tW.setPosition(btnWczytaj.left + (btnWczytaj.width - tW.getLocalBounds().width)/2.f, btnWczytaj.top + 15.f);
+            window.draw(tW);
         }
         else if (obecnyStan == WYBOR_GRACZA) {
             sf::Text tQ("KTO GRA?", font, 40); 
@@ -572,6 +578,21 @@ int main() {
         else if (obecnyStan == ROZGRYWKA) {
             gra.aktualizujCzas();
             gra.rysuj(window, font, wybranyStyl, wybraneTlo);
+            
+            // Obsluga polimorficznych animacji (obiekty 2D)
+            gra.aktualizujObiekty(dt);
+            for (auto& obj : gra.obiektyGry) {
+                obj->rysuj(window);
+            }
+
+            sf::RectangleShape rZap(sf::Vector2f(btnZapisz.width, btnZapisz.height));
+            rZap.setPosition(btnZapisz.left, btnZapisz.top);
+            rZap.setFillColor(ciemnyZielony);
+            rZap.setOutlineThickness(2.f);
+            window.draw(rZap);
+            sf::Text tZap("ZAPISZ GRE", font, 16);
+            tZap.setPosition(btnZapisz.left + 15.f, btnZapisz.top + 10.f);
+            window.draw(tZap);
         }
 
         window.display();

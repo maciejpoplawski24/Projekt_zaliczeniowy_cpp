@@ -27,20 +27,62 @@ struct StanGry {
 
 enum StanRozgrywki { W_TRAKCIE, WYGRANA, PRZEGRANA, ANIMACJA_ROZDAWANIA };
 
-struct KartaAnimacja {
+#include <memory>
+
+// Abstrakcyjna klasa bazowa (Wymóg: Dziedziczenie, Polimorfizm, public/protected)
+class ObiektGry {
+protected:
     sf::Sprite sprite;
     sf::Vector2f pozycja;
-    sf::Vector2f predkosc;
+    sf::Vector2f predkoscLin; // prędkość liniowa w px/s
+    float rotacja = 0.f;
+    float predkoscRot = 0.f;  // prędkość kątowa w stopniach/s
+public:
+    virtual ~ObiektGry() = default;
+    virtual bool aktualizuj(float dt) = 0; // true jeśli obiekt skończył animację
+    virtual void rysuj(sf::RenderWindow& window) {
+        sprite.setPosition(pozycja);
+        sprite.setRotation(rotacja);
+        window.draw(sprite);
+    }
 };
 
-struct KartaAnimacjaRozdania {
+class AnimowanaKartaWygrana : public ObiektGry {
+public:
+    AnimowanaKartaWygrana(sf::Sprite s, sf::Vector2f pos, sf::Vector2f vel, float rotVel) {
+        sprite = s; pozycja = pos; predkoscLin = vel; predkoscRot = rotVel;
+        sprite.setPosition(pozycja);
+        sprite.setOrigin(s.getLocalBounds().width/2.f, s.getLocalBounds().height/2.f);
+    }
+    bool aktualizuj(float dt) override {
+        predkoscLin.y += 1000.f * dt; // grawitacja
+        pozycja += predkoscLin * dt;
+        rotacja += predkoscRot * dt;
+        if (pozycja.y > 800.f) { pozycja.y = 800.f; predkoscLin.y *= -0.8f; }
+        if (pozycja.x < 0.f || pozycja.x > 1000.f) predkoscLin.x *= -0.8f;
+        return false; // Nigdy nie znika
+    }
+};
+
+class AnimowanaKartaRozdania : public ObiektGry {
+public:
     Karta karta;
-    sf::Sprite sprite;
-    sf::Vector2f start;
     sf::Vector2f cel;
-    float t;
-    float predkoscLatania;
     int celKolumna;
+    float t = 0.f;
+    float opoznienie = 0.f;
+    
+    AnimowanaKartaRozdania(Karta k, sf::Sprite s, sf::Vector2f p, sf::Vector2f c, int kol, float opoz) {
+        karta = k; sprite = s; pozycja = p; cel = c; celKolumna = kol; opoznienie = opoz;
+        sprite.setPosition(pozycja);
+    }
+    bool aktualizuj(float dt) override {
+        if (opoznienie > 0.f) { opoznienie -= dt; return false; }
+        t += 3.0f * dt; // predkosc interpolacji
+        if (t >= 1.f) t = 1.f;
+        pozycja = pozycja + (cel - pozycja) * t;
+        return (t >= 1.f);
+    }
 };
 
 class GraPajak {
@@ -111,12 +153,11 @@ public:
     bool czyKoniecGry() const { return stan == WYGRANA || stan == PRZEGRANA; }
     void zaladujTekstury();
     
-    std::vector<KartaAnimacja> animowaneKarty;
-    void inicjujAnimacjeWygranej(int wybranyStyl);
-    void aktualizujAnimacjeWygranej();
+    // Zastosowanie std::unique_ptr oraz wspólnego kontenera obiektów
+    std::vector<std::unique_ptr<ObiektGry>> obiektyGry;
     
-    std::deque<KartaAnimacjaRozdania> kolejkaRozdania;
-    void aktualizujAnimacjeRozdania();
+    void inicjujAnimacjeWygranej(int wybranyStyl);
+    void aktualizujObiekty(float dt);
     void przyspieszRozdawanie();
     
     void znajdzWskazowke();
@@ -128,4 +169,6 @@ public:
     void zapiszWynikRanking(int punkty);
     void wyczyscRanking(int tryb);
     std::vector<WynikGracza> pobierzRanking(int tryb);
+    void zapiszGreDoPliku(const std::string& sciezka);
+    void wczytajGreZPliku(const std::string& sciezka);
 };
